@@ -14,7 +14,14 @@
       "Bash(npx prisma db execute --file prisma/migrations/init_rls/migration.sql --schema prisma/schema.prisma)",
       "WebSearch",
       "WebFetch(domain:ui.shadcn.com)",
-      "Bash(npx shadcn@latest init --yes --defaults)"
+      "Bash(npx shadcn@latest init --yes --defaults)",
+      "Bash(npx skills add shadcn/ui)",
+      "Bash(cp -r \"D:/Private Projects/ownHome/.agents/skills/shadcn\" \"D:/Private Projects/ownHome/.claude/skills/shadcn\")",
+      "Bash(cp -r \"D:/Private Projects/ownHome/.agents/skills/frontend-design\" \"D:/Private Projects/ownHome/.claude/skills/frontend-design\")",
+      "Bash(mkdir -p \"D:/Private Projects/ownHome/.claude/skills\")",
+      "Bash(npx shadcn@latest info --json)",
+      "Bash(python -m json.tool)",
+      "Bash(npx shadcn@latest info)"
     ]
   }
 }

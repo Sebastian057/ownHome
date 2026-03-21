@@ -1,0 +1,417 @@
+---
+name: ownhome-ui
+description: >
+  Generuje module.ui.tsx dla modułu OwnHome — stateless komponenty React
+  z shadcn/ui (base library), wywołaniami fetch do REST API, obsługą formularzy
+  przez react-hook-form + zodResolver. Używaj po ukończeniu ownhome-backend.
+---
+
+# OwnHome — UI Module Generator
+
+Generuje `modules/<name>/module.ui.tsx`. Komponenty są **stateless/dumb** —
+żadnej logiki biznesowej, tylko renderowanie i fetch do REST API.
+
+---
+
+## Krok 0 — Kontekst projektu (zawsze najpierw)
+
+```bash
+npx shadcn@latest info --json
+```
+
+Kluczowe pola dla OwnHome:
+- `base`: `base` (nie radix) → **używaj `render` zamiast `asChild` dla triggerów**
+- `tailwindVersion`: `v3` → custom kolory w `tailwind.config.ts`, nie `@theme inline`
+- `iconLibrary`: `lucide` → import z `lucide-react`
+- `installedComponents`: sprawdź co już jest — nie reinstaluj
+
+Przed użyciem każdego komponentu sprawdź dokumentację:
+```bash
+npx shadcn@latest docs <component-name>
+```
+Pobierz zwrócone URL i przeczytaj przed generowaniem kodu. Nigdy nie zgaduj API.
+
+---
+
+## Krok 1 — Dobierz i zainstaluj komponenty
+
+Korzystaj z pełnej biblioteki shadcn — **nie ograniczaj się do podzbioru**.
+Wybieraj komponent odpowiedni do potrzeby UI, konsultując tabelę z shadcn skill:
+
+| Potrzeba UI | Komponent |
+|-------------|-----------|
+| Akcja / przycisk | `Button` (variant: default, outline, ghost, destructive) |
+| Pola formularza | `Input`, `Select`, `Combobox`, `Textarea`, `Checkbox`, `Switch`, `RadioGroup`, `Slider`, `InputOTP` |
+| Opcje 2–5 wyborów | `ToggleGroup + ToggleGroupItem` |
+| Wyświetlanie danych | `Table`, `Card`, `Badge`, `Avatar` |
+| Nawigacja | `Sidebar`, `NavigationMenu`, `Breadcrumb`, `Tabs`, `Pagination` |
+| Overlaye | `Dialog` (modal), `Sheet` (panel boczny), `Drawer` (bottom), `AlertDialog` (potwierdzenie) |
+| Feedback | `sonner` (toast), `Alert`, `Progress`, `Skeleton`, `Spinner` |
+| Pusty stan | `Empty` |
+| Menu | `DropdownMenu`, `ContextMenu`, `Menubar` |
+| Tooltip / info | `Tooltip`, `HoverCard`, `Popover` |
+| Layout | `Card`, `Separator`, `Resizable`, `ScrollArea`, `Accordion`, `Collapsible` |
+| Wykresy | `Chart` (wraps Recharts) |
+| Command palette | `Command` inside `Dialog` |
+| Grupowanie pól | `FieldSet + FieldLegend` |
+| Input z przyciskiem | `InputGroup + InputGroupInput + InputGroupAddon` |
+| Klawiatura | `Kbd` |
+| Typografia | `Typography` |
+
+Jeśli nie ma komponentu na liście — wyszukaj:
+```bash
+npx shadcn@latest search @shadcn -q "<słowo kluczowe>"
+```
+
+Instaluj tylko brakujące (sprawdź `npx shadcn@latest info` → `installedComponents`):
+```bash
+npx shadcn@latest add <component> [component2] ...
+```
+
+---
+
+## Krok 2 — Struktura `module.ui.tsx`
+
+```
+"use client"                      ← zawsze, komponenty używają useState/useEffect
+
+1. importy
+2. funkcje fetch (async, ApiResponse<T>)
+3. <XList>    — tabela lub karty, loading/error/empty state
+4. <XForm>    — formularz z react-hook-form + zodResolver
+5. <XPage>    — składa List + Form (Dialog lub dedykowana strona)
+```
+
+---
+
+## Krok 3 — Funkcje fetch
+
+Wywołują REST API — **nigdy nie importują z service ani repository**.
+
+```ts
+import type { ApiResponse } from '@/types/common.types';
+import type { Subscription, CreateSubscriptionDto } from './module.types';
+
+async function fetchSubscriptions(): Promise<ApiResponse<Subscription[]>> {
+  const res = await fetch('/api/subscriptions');
+  return res.json();
+}
+
+async function createSubscription(
+  data: CreateSubscriptionDto
+): Promise<ApiResponse<Subscription>> {
+  const res = await fetch('/api/subscriptions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+async function deleteSubscription(id: string): Promise<ApiResponse<void>> {
+  const res = await fetch(`/api/subscriptions/${id}`, { method: 'DELETE' });
+  return res.json();
+}
+```
+
+Zawsze sprawdzaj `response.error !== null` przed użyciem `response.data`.
+
+---
+
+## Krok 4 — Komponent listujący `<XList>`
+
+```tsx
+export function SubscriptionList() {
+  const [items, setItems] = useState<Subscription[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchSubscriptions().then((res) => {
+      if (res.error) setError(res.error.message);
+      else setItems(res.data);
+      setLoading(false);
+    });
+  }, []);
+
+  if (loading) return <Skeleton className="h-48 w-full" />;
+
+  if (error) return (
+    <Alert>
+      <AlertDescription>{error}</AlertDescription>
+    </Alert>
+  );
+
+  if (items.length === 0) return (
+    <Empty>
+      <EmptyHeader>
+        <EmptyMedia variant="icon"><InboxIcon /></EmptyMedia>
+        <EmptyTitle>Brak subskrypcji</EmptyTitle>
+        <EmptyDescription>Dodaj pierwszą subskrypcję.</EmptyDescription>
+      </EmptyHeader>
+    </Empty>
+  );
+
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Nazwa</TableHead>
+          <TableHead>Kwota</TableHead>
+          <TableHead>Cykl</TableHead>
+          <TableHead>Następna płatność</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {items.map((item) => (
+          <TableRow key={item.id}>
+            <TableCell className="font-medium">{item.name}</TableCell>
+            <TableCell>{item.amount} {item.currency}</TableCell>
+            <TableCell>
+              <Badge variant="secondary">{item.billingCycle}</Badge>
+            </TableCell>
+            <TableCell className="text-muted-foreground">
+              {new Date(item.nextBillingDate).toLocaleDateString('pl-PL')}
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+}
+```
+
+Zasady:
+- `Skeleton` dla loading — nie custom `animate-pulse`
+- `Empty` dla pustego stanu — nie custom div
+- `Alert` dla błędu — nie custom styled div
+- `Badge variant="secondary"` dla statusów — nie `<span className="text-green-500">`
+- `text-muted-foreground` — nie `text-gray-500` (semantic tokens)
+- `gap-*` — nie `space-y-*`
+
+---
+
+## Krok 5 — Formularz `<XForm>`
+
+### Dlaczego `Form + FormField + zodResolver` (nie `FieldGroup + Field`)
+
+OwnHome ma schematy Zod w `module.schema.ts` — `zodResolver` to bezpośrednie połączenie
+tych schematów z formularzem, bez duplikowania walidacji. `FormField` automatycznie:
+- ustawia `data-invalid` na `Field` gdy pole ma błąd
+- ustawia `aria-invalid` na kontrolce
+- propaguje błędy przez `FormMessage`
+
+`FieldGroup + Field` bez react-hook-form wymaga ręcznego zarządzania stanem walidacji —
+to cofnięcie się do manualnej pracy którą Zod już wykonuje.
+
+```tsx
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { createSubscriptionSchema } from './module.schema';
+import type { CreateSubscriptionDto } from './module.types';
+
+export function SubscriptionForm({ onSuccess }: { onSuccess: () => void }) {
+  const form = useForm<CreateSubscriptionDto>({
+    resolver: zodResolver(createSubscriptionSchema),
+    defaultValues: { currency: 'PLN', billingCycle: 'monthly' },
+  });
+
+  async function onSubmit(data: CreateSubscriptionDto) {
+    const res = await createSubscription(data);
+    if (res.error) {
+      form.setError('root', { message: res.error.message });
+      return;
+    }
+    form.reset();
+    onSuccess();
+  }
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
+
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Nazwa</FormLabel>
+              <FormControl>
+                <Input placeholder="np. Spotify" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="amount"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Kwota</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  {...field}
+                  onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="billingCycle"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Cykl rozliczeniowy</FormLabel>
+              <FormControl>
+                <ToggleGroup
+                  defaultValue={[field.value]}
+                  onValueChange={(v) => field.onChange(v[0])}
+                  spacing={2}
+                >
+                  <ToggleGroupItem value="monthly">Miesięczny</ToggleGroupItem>
+                  <ToggleGroupItem value="yearly">Roczny</ToggleGroupItem>
+                  <ToggleGroupItem value="weekly">Tygodniowy</ToggleGroupItem>
+                </ToggleGroup>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {form.formState.errors.root && (
+          <Alert>
+            <AlertDescription>{form.formState.errors.root.message}</AlertDescription>
+          </Alert>
+        )}
+
+        <Button type="submit" disabled={form.formState.isSubmitting}>
+          {form.formState.isSubmitting && <Spinner data-icon="inline-start" />}
+          Zapisz
+        </Button>
+
+      </form>
+    </Form>
+  );
+}
+```
+
+Zasady formularza:
+- `Form + FormField + FormItem + FormLabel + FormControl + FormMessage` — nie surowe divy
+- `ToggleGroup` dla opcji 2–5 — nie loopowane `Button` z active state (base API: brak `type` prop, `defaultValue` to array)
+- Błąd z API → `form.setError('root', ...)` — nie osobny `useState`
+- Button loading → `Spinner + data-icon + disabled` — brak `isLoading`/`isPending` prop
+- `gap-4` — nie `space-y-4`
+
+---
+
+## Krok 6 — Strona `<XPage>`
+
+### Ważne: `render` zamiast `asChild` (projekt używa `base` library)
+
+```tsx
+// ❌ BŁĄD — asChild jest dla radix, nie base
+<DialogTrigger asChild>
+  <Button>Dodaj</Button>
+</DialogTrigger>
+
+// ✅ POPRAWNIE — base używa render prop
+<DialogTrigger render={<Button />}>
+  Dodaj
+</DialogTrigger>
+```
+
+```tsx
+export function SubscriptionsPage() {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  return (
+    <div className="flex flex-col gap-6 p-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Subskrypcje</h1>
+
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger render={<Button />}>
+            <PlusIcon data-icon="inline-start" />
+            Dodaj
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Nowa subskrypcja</DialogTitle>
+              <DialogDescription>Uzupełnij dane subskrypcji.</DialogDescription>
+            </DialogHeader>
+            <SubscriptionForm
+              onSuccess={() => {
+                setDialogOpen(false);
+                setRefreshKey((k) => k + 1);
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Twoje subskrypcje</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <SubscriptionList key={refreshKey} />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+```
+
+Zasady:
+- `render={<Button />}` — nie `asChild` (projekt: `base` library)
+- `Dialog` zawsze z `DialogTitle` i `DialogDescription` (accessibility)
+- `Card` = `CardHeader + CardTitle + CardContent` — nie dump do `CardContent`
+- `PlusIcon` z `lucide-react`, `data-icon="inline-start"` bez klas rozmiaru
+
+---
+
+## Krok 7 — Instalacja zależności formularzy
+
+```bash
+npm install react-hook-form @hookform/resolvers
+npx shadcn@latest add form
+```
+
+---
+
+## Krok 8 — Weryfikacja
+
+```bash
+npx tsc --noEmit
+```
+
+Musi zwrócić **0 błędów**.
+
+---
+
+## Zakazy bezwzględne
+
+| Zakaz | Powód |
+|-------|-------|
+| `asChild` na triggerach | projekt używa `base`, nie `radix` |
+| Import z `@/modules/*/repository` lub `*/service` | architektura API-first |
+| `dangerouslySetInnerHTML` | XSS |
+| `any` | strict TypeScript |
+| `space-y-*` lub `space-x-*` | użyj `gap-*` |
+| Raw kolory (`text-green-500`, `bg-blue-100`) | użyj semantic tokens |
+| Używanie `data` przed sprawdzeniem `error !== null` | null safety |
+| `w-4 h-4` na ikonach w komponentach | komponenty zarządzają rozmiarem via CSS |
+| `dark:bg-gray-900` lub podobne | semantic tokens obsługują dark mode |
+| Custom `animate-pulse` div | użyj `Skeleton` |
+| Custom styled div dla błędu | użyj `Alert` |
+| Custom styled span dla statusu | użyj `Badge` |
+| `z-50` na overlay | `Dialog`/`Sheet`/`Popover` zarządzają stackingiem |
