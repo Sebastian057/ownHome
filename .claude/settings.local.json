@@ -11,7 +11,10 @@
       "Bash(npm install @prisma/client@^5.22.0 prisma@^5.22.0)",
       "Bash(npx tsc --noEmit)",
       "Bash(npx prisma db push)",
-      "Bash(npx prisma db execute --file prisma/migrations/init_rls/migration.sql --schema prisma/schema.prisma)"
+      "Bash(npx prisma db execute --file prisma/migrations/init_rls/migration.sql --schema prisma/schema.prisma)",
+      "WebSearch",
+      "WebFetch(domain:ui.shadcn.com)",
+      "Bash(npx shadcn@latest init --yes --defaults)"
     ]
   }
 }
