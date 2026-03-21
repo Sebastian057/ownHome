@@ -1,0 +1,24 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model ScheduledEvent {
+  id          String    @id @default(cuid())
+  userId      String
+  name        String
+  payload     Json
+  scheduledAt DateTime
+  processedAt DateTime?
+  failedAt    DateTime?
+  retryCount  Int       @default(0)
+  createdAt   DateTime  @default(now())
+
+  @@index([userId, scheduledAt, processedAt])
+  @@map("scheduled_events")
+}

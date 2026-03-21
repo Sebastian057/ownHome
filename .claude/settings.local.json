@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest . --typescript --tailwind --app --no-src-dir --import-alias \"@/*\" --no-git --yes)",
+      "Bash(npx create-next-app@latest . --typescript --tailwind --app --no-src-dir --import-alias \"@/*\" --no-git --yes --package-name ownhome)",
+      "Bash(mkdir -p modules/budget modules/calendar modules/vehicles modules/subscriptions modules/obligations lib types prisma/migrations/init_rls)",
+      "Bash(touch modules/budget/.gitkeep modules/calendar/.gitkeep modules/vehicles/.gitkeep modules/subscriptions/.gitkeep modules/obligations/.gitkeep)",
+      "Bash(npm install)",
+      "Bash(npm install @supabase/ssr @supabase/supabase-js @prisma/client prisma @upstash/ratelimit @upstash/redis zod)",
+      "Bash(npx prisma generate)",
+      "Bash(npm install @prisma/client@^5.22.0 prisma@^5.22.0)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(npx prisma db push)",
+      "Bash(npx prisma db execute --file prisma/migrations/init_rls/migration.sql --schema prisma/schema.prisma)"
+    ]
+  }
+}
