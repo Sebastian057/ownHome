@@ -2,7 +2,7 @@
 name: ownhome-ui
 description: >
   Generuje module.ui.tsx dla modułu OwnHome — stateless komponenty React
-  z shadcn/ui (base library), wywołaniami fetch do REST API, obsługą formularzy
+  z shadcn/ui (Radix UI primitives), wywołaniami fetch do REST API, obsługą formularzy
   przez react-hook-form + zodResolver. Używaj po ukończeniu ownhome-backend.
 ---
 
@@ -13,6 +13,70 @@ Generuje `modules/<name>/module.ui.tsx`. Komponenty są **stateless/dumb** —
 
 ---
 
+## System wizualny — reguły obowiązkowe
+
+> Pełna dokumentacja: `docs/design/system.md`
+
+### Paleta kolorów
+
+OwnHome używa **warm indigo** jako primary. Tylko semantic tokens — nigdy raw Tailwind kolory.
+
+| Zastosowanie | Token | Przykład klasy |
+|---|---|---|
+| Tekst główny | `--foreground` | `text-foreground` |
+| Tekst pomocniczy | `--muted-foreground` | `text-muted-foreground` |
+| Powierzchnia karty | `--card` | automatycznie przez `<Card>` |
+| Akcje CTA | `--primary` | automatycznie przez `<Button>` |
+| Przychody, sukces | `--success` | `text-success`, `bg-success` |
+| Ostrzeżenia, zbliżające się płatności | `--warning` | `text-warning`, `bg-warning` |
+| Błędy, usuwanie | `--destructive` | automatycznie przez `<Alert variant="destructive">` |
+
+### Typografia
+
+```tsx
+// Nagłówek strony modułu
+<h1 className="text-2xl font-semibold">Subskrypcje</h1>
+
+// Tekst pomocniczy
+<span className="text-sm text-muted-foreground">Ostatnia aktualizacja</span>
+
+// Kwoty pieniężne — zawsze font-mono
+<span className="font-mono font-medium">199,00 PLN</span>
+
+// Przychód (+ zielony)
+<span className="font-mono font-medium text-success">+500,00 PLN</span>
+
+// Wydatek (- czerwony)
+<span className="font-mono font-medium text-destructive">-99,90 PLN</span>
+```
+
+### Gęstość layoutu per moduł
+
+| Moduł | Gęstość | Wrapper |
+|---|---|---|
+| `budget` | Dense | `<div className="flex flex-col gap-4 p-4">`, `<CardContent className="p-0">` |
+| `subscriptions` | Balanced | `<div className="flex flex-col gap-6 p-6">` |
+| `obligations` | Dense | j.w. budget |
+| `vehicles` | Spacious | `<div className="flex flex-col gap-8 p-8">` |
+| `calendar` | Balanced | j.w. subscriptions |
+
+### Badges dla statusów
+
+```tsx
+<Badge variant="default">Aktywna</Badge>           // aktywny
+<Badge variant="secondary">Miesięczny</Badge>       // neutralny
+<Badge className="bg-warning text-warning-foreground">Za 3 dni</Badge>  // ostrzeżenie
+<Badge variant="destructive">Przeterminowane</Badge>  // błąd/danger
+<Badge className="bg-success text-success-foreground">Opłacone</Badge>  // sukces
+```
+
+### Dark mode
+
+Dark mode obsługuje `.dark { }` w `globals.css` — **nie dodawaj ręcznie klas `dark:`**.
+Używaj semantic tokens a dark mode zadziała automatycznie.
+
+---
+
 ## Krok 0 — Kontekst projektu (zawsze najpierw)
 
 ```bash
@@ -20,8 +84,8 @@ npx shadcn@latest info --json
 ```
 
 Kluczowe pola dla OwnHome:
-- `base`: `base` (nie radix) → **używaj `render` zamiast `asChild` dla triggerów**
-- `tailwindVersion`: `v3` → custom kolory w `tailwind.config.ts`, nie `@theme inline`
+- `base`: `radix` → **używaj `asChild` dla triggerów** (nie `render`)
+- `tailwindVersion`: `v4` → custom kolory w `@theme inline` w `globals.css`, nie w `tailwind.config.ts`
 - `iconLibrary`: `lucide` → import z `lucide-react`
 - `installedComponents`: sprawdź co już jest — nie reinstaluj
 
@@ -305,7 +369,7 @@ export function SubscriptionForm({ onSuccess }: { onSuccess: () => void }) {
 
 Zasady formularza:
 - `Form + FormField + FormItem + FormLabel + FormControl + FormMessage` — nie surowe divy
-- `ToggleGroup` dla opcji 2–5 — nie loopowane `Button` z active state (base API: brak `type` prop, `defaultValue` to array)
+- `ToggleGroup` dla opcji 2–5 — nie loopowane `Button` z active state (radix API: `type="single"`, `defaultValue` to string)
 - Błąd z API → `form.setError('root', ...)` — nie osobny `useState`
 - Button loading → `Spinner + data-icon + disabled` — brak `isLoading`/`isPending` prop
 - `gap-4` — nie `space-y-4`
@@ -314,15 +378,15 @@ Zasady formularza:
 
 ## Krok 6 — Strona `<XPage>`
 
-### Ważne: `render` zamiast `asChild` (projekt używa `base` library)
+### Ważne: `asChild` (projekt używa `radix` library)
 
 ```tsx
-// ❌ BŁĄD — asChild jest dla radix, nie base
+// ✅ POPRAWNIE — radix używa asChild
 <DialogTrigger asChild>
   <Button>Dodaj</Button>
 </DialogTrigger>
 
-// ✅ POPRAWNIE — base używa render prop
+// ❌ BŁĄD — render prop jest dla base UI, nie radix
 <DialogTrigger render={<Button />}>
   Dodaj
 </DialogTrigger>
@@ -339,9 +403,11 @@ export function SubscriptionsPage() {
         <h1 className="text-2xl font-semibold">Subskrypcje</h1>
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger render={<Button />}>
-            <PlusIcon data-icon="inline-start" />
-            Dodaj
+          <DialogTrigger asChild>
+            <Button>
+              <PlusIcon data-icon="inline-start" />
+              Dodaj
+            </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
@@ -372,7 +438,7 @@ export function SubscriptionsPage() {
 ```
 
 Zasady:
-- `render={<Button />}` — nie `asChild` (projekt: `base` library)
+- `asChild` na triggerach — nie `render` prop (projekt: `radix` library)
 - `Dialog` zawsze z `DialogTitle` i `DialogDescription` (accessibility)
 - `Card` = `CardHeader + CardTitle + CardContent` — nie dump do `CardContent`
 - `PlusIcon` z `lucide-react`, `data-icon="inline-start"` bez klas rozmiaru
@@ -402,7 +468,7 @@ Musi zwrócić **0 błędów**.
 
 | Zakaz | Powód |
 |-------|-------|
-| `asChild` na triggerach | projekt używa `base`, nie `radix` |
+| `render` prop na triggerach | projekt używa `radix`, nie `base` — używaj `asChild` |
 | Import z `@/modules/*/repository` lub `*/service` | architektura API-first |
 | `dangerouslySetInnerHTML` | XSS |
 | `any` | strict TypeScript |

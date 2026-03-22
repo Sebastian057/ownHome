@@ -11,7 +11,7 @@
 OwnHome to prywatna aplikacja webowa typu "personal life manager" — system do zarządzania finansami, czasem, majątkiem i zobowiązaniami w jednym spójnym ekosystemie.
 
 **Stack:**
-- Frontend: Next.js (App Router) + TypeScript + Tailwind CSS + shadcn/ui
+- Frontend: Next.js (App Router) + TypeScript + Tailwind CSS v4 + shadcn/ui (styl: nova, primitives: Radix UI)
 - Backend: Next.js Route Handlers (REST API)
 - ORM: Prisma
 - Baza danych: PostgreSQL przez Supabase
