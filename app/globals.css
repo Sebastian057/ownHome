@@ -63,28 +63,30 @@
 
 /* ============================================================
    CSS variables — L C H kanały (bez oklch wrappera)
-   Używane przez @theme inline powyżej
+
+   Paleta: warm coral primary (#DF664D), neutralne szarości
+   Sidebar: gradient #717171→#3E3E3E (na komponencie)
    ============================================================ */
 :root {
-  --background:            0.98 0 0;
-  --foreground:            0.13 0 0;
+  --background:            0.928 0 0;
+  --foreground:            0.145 0 0;
   --card:                  1 0 0;
-  --card-foreground:       0.13 0 0;
+  --card-foreground:       0.145 0 0;
   --popover:               1 0 0;
-  --popover-foreground:    0.13 0 0;
+  --popover-foreground:    0.145 0 0;
 
-  /* Primary — orange (ciepły, energiczny) */
-  --primary:               0.63 0.22 28;
+  /* Primary — warm coral (#DF664D → ciemniejszy terracotta dla WCAG AA 4.5:1 z białym) */
+  --primary:               0.57 0.157 33.2;
   --primary-foreground:    1 0 0;
 
-  --secondary:             0.92 0.006 60;
-  --secondary-foreground:  0.30 0.01 25;
+  --secondary:             0.931 0 0;
+  --secondary-foreground:  0.35 0 0;
 
-  --muted:                 0.92 0.006 60;
-  --muted-foreground:      0.50 0.01 25;
+  --muted:                 0.943 0 0;
+  --muted-foreground:      0.50 0 0;
 
-  --accent:                0.93 0.015 40;
-  --accent-foreground:     0.30 0.01 25;
+  --accent:                0.94 0.01 33;
+  --accent-foreground:     0.35 0 0;
 
   --destructive:           0.577 0.245 27.325;
   --destructive-foreground: 1 0 0;
@@ -95,76 +97,78 @@
   --warning:               0.72 0.15 75;
   --warning-foreground:    0.20 0.05 75;
 
-  --border:                0.87 0.008 60;
-  --input:                 0.87 0.008 60;
-  --ring:                  0.63 0.22 28;
+  --border:                0.88 0 0;
+  --input:                 0.88 0 0;
+  --ring:                  0.653 0.157 33.2;
 
-  --chart-1: 0.63 0.22 28;
+  --chart-1: 0.653 0.157 33.2;
   --chart-2: 0.58 0.16 145;
   --chart-3: 0.72 0.15 75;
   --chart-4: 0.577 0.245 27.325;
   --chart-5: 0.62 0.1 310;
 
-  --radius: 0.75rem;
+  --radius: 0.5rem;
 
-  /* Sidebar — zawsze ciemny (niezależnie od trybu) */
-  --sidebar:                    0.18 0.008 25;
-  --sidebar-foreground:         0.88 0.005 25;
-  --sidebar-primary:            0.63 0.22 28;
+  /* Sidebar — fallback (gradient na komponencie) */
+  --sidebar:                    0.364 0 0;
+  --sidebar-foreground:         0.92 0 0;
+  --sidebar-primary:            0.57 0.157 33.2;
   --sidebar-primary-foreground: 1 0 0;
-  --sidebar-accent:             0.26 0.01 25;
-  --sidebar-accent-foreground:  0.93 0.005 25;
-  --sidebar-border:             1 0 0 / 8%;
-  --sidebar-ring:               0.63 0.22 28;
+  --sidebar-accent:             0.44 0 0;
+  --sidebar-accent-foreground:  0.95 0 0;
+  --sidebar-border:             1 0 0 / 10%;
+  --sidebar-ring:               0.653 0.157 33.2;
 }
 
 .dark {
-  --background:            0.13 0.008 25;
-  --foreground:            0.94 0.005 60;
-  --card:                  0.18 0.010 25;
-  --card-foreground:       0.94 0.005 60;
-  --popover:               0.18 0.010 25;
-  --popover-foreground:    0.94 0.005 60;
+  --background:            0.145 0 0;
+  --foreground:            0.92 0 0;
+  --card:                  0.20 0 0;
+  --card-foreground:       0.92 0 0;
+  --popover:               0.20 0 0;
+  --popover-foreground:    0.92 0 0;
 
-  --primary:               0.72 0.20 28;
-  --primary-foreground:    0.13 0.008 25;
+  /* Primary — jaśniejsza wersja coral w dark mode */
+  --primary:               0.72 0.157 33.2;
+  --primary-foreground:    0.145 0 0;
 
-  --secondary:             0.24 0.010 25;
-  --secondary-foreground:  0.85 0.005 25;
+  --secondary:             0.25 0 0;
+  --secondary-foreground:  0.85 0 0;
 
-  --muted:                 0.24 0.010 25;
-  --muted-foreground:      0.58 0.010 25;
+  --muted:                 0.25 0 0;
+  --muted-foreground:      0.62 0 0;
 
-  --accent:                0.28 0.012 28;
-  --accent-foreground:     0.88 0.005 25;
+  --accent:                0.28 0.01 33;
+  --accent-foreground:     0.88 0 0;
 
   --destructive:           0.704 0.191 22.216;
   --destructive-foreground: 1 0 0;
 
   --success:               0.72 0.14 145;
-  --success-foreground:    0.13 0 0;
+  --success-foreground:    0.145 0 0;
 
   --warning:               0.82 0.14 80;
   --warning-foreground:    0.15 0.04 75;
 
-  --border:                1 0 0 / 10%;
+  --border:                1 0 0 / 12%;
   --input:                 1 0 0 / 15%;
-  --ring:                  0.72 0.20 28;
+  --ring:                  0.72 0.157 33.2;
 
-  --chart-1: 0.72 0.20 28;
+  --chart-1: 0.72 0.157 33.2;
   --chart-2: 0.72 0.14 145;
   --chart-3: 0.82 0.14 80;
   --chart-4: 0.704 0.191 22.216;
   --chart-5: 0.75 0.1 310;
 
-  --sidebar:                    0.12 0.006 25;
-  --sidebar-foreground:         0.88 0.005 25;
-  --sidebar-primary:            0.72 0.20 28;
-  --sidebar-primary-foreground: 1 0 0;
-  --sidebar-accent:             0.20 0.008 25;
-  --sidebar-accent-foreground:  0.93 0.005 25;
+  /* Sidebar — ciemniejszy w dark mode */
+  --sidebar:                    0.12 0 0;
+  --sidebar-foreground:         0.88 0 0;
+  --sidebar-primary:            0.72 0.157 33.2;
+  --sidebar-primary-foreground: 0.10 0 0; /* ciemny tekst na jasnym coral — kontrast 7.5:1 */
+  --sidebar-accent:             0.20 0 0;
+  --sidebar-accent-foreground:  0.95 0 0;
   --sidebar-border:             1 0 0 / 8%;
-  --sidebar-ring:               0.72 0.20 28;
+  --sidebar-ring:               0.72 0.157 33.2;
 }
 
 @layer base {
@@ -177,6 +181,25 @@
   html {
     @apply font-sans;
   }
+}
+
+/* Collapsible sidebar accordion */
+@keyframes collapsible-down {
+  from { height: 0; opacity: 0; }
+  to   { height: var(--radix-collapsible-content-height); opacity: 1; }
+}
+@keyframes collapsible-up {
+  from { height: var(--radix-collapsible-content-height); opacity: 1; }
+  to   { height: 0; opacity: 0; }
+}
+.collapsible-content {
+  overflow: hidden;
+}
+.collapsible-content[data-state="open"] {
+  animation: collapsible-down 200ms ease-out;
+}
+.collapsible-content[data-state="closed"] {
+  animation: collapsible-up 180ms ease-in;
 }
 
 /* Minimalistyczny scrollbar */

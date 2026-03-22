@@ -15,11 +15,18 @@ Generuje `modules/<name>/module.ui.tsx`. Komponenty są **stateless/dumb** —
 
 ## System wizualny — reguły obowiązkowe
 
-> Pełna dokumentacja: `docs/design/system.md`
-
 ### Paleta kolorów
 
-OwnHome używa **warm indigo** jako primary. Tylko semantic tokens — nigdy raw Tailwind kolory.
+OwnHome używa **warm coral (#DF664D)** jako primary. Tylko semantic tokens — nigdy raw Tailwind kolory.
+
+**Kluczowe wartości (globals.css, oklch):**
+- Primary: `#DF664D` → oklch(0.653 0.157 33.2)
+- Background: `#E7E7E7` → oklch(0.928 0 0)
+- Sidebar: gradient `#717171→#3E3E3E` (top→bottom, na komponencie inline style)
+- Grays: `#E8E8E8`, `#ECECEC` (neutralne, hue 0)
+- Radius: `0.5rem` (8px — fintech feel)
+
+**Dark mode:** Automatyczny przez `.dark {}` w globals.css. Primary jaśniejszy w dark mode.
 
 | Zastosowanie | Token | Przykład klasy |
 |---|---|---|

@@ -8,6 +8,24 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+// user_profiles jest rozszerzeniem Supabase Auth (auth.users).
+// fullName i email są przechowywane w auth.users.raw_user_meta_data / auth.users.email.
+// Ten model przechowuje TYLKO dane aplikacji: rola, motyw, język, telefon, avatar.
+model UserProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique @map("user_id")
+  avatarUrl String?  @map("avatar_url") @db.VarChar(500)
+  phone     String?  @db.VarChar(20)
+  language  String   @default("pl") @db.Char(2)
+  theme     String   @default("light") @db.VarChar(10)
+  role      String   @default("user") @db.VarChar(10)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("user_profiles")
+}
+
 model ScheduledEvent {
   id          String    @id @default(cuid())
   userId      String

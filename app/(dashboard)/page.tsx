@@ -12,13 +12,17 @@ import {
 } from "lucide-react";
 
 export default function DashboardPage() {
+  const now = new Date();
+  const monthLabel = now.toLocaleDateString("pl-PL", { month: "long", year: "numeric" });
+  const monthDisplay = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
+
   return (
     <div className="flex flex-col gap-6 p-6">
       {/* Header */}
       <div className="flex items-center gap-4">
         <div>
           <h1 className="text-2xl font-semibold">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">Marzec 2026</p>
+          <p className="text-sm text-muted-foreground">{monthDisplay}</p>
         </div>
       </div>
 
