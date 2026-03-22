@@ -3,9 +3,8 @@ import './globals.css';
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { Providers } from "./providers";
-import { AppSidebar } from "@/components/app-sidebar";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
   title: 'OwnHome',
@@ -19,14 +18,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pl" className={cn("font-sans", geist.variable)} suppressHydrationWarning>
-      <body className="bg-zinc-200 dark:bg-zinc-900">
+      <body className="bg-background">
         <Providers>
-          <div className="flex h-screen gap-3 p-3 overflow-hidden">
-            <AppSidebar />
-            <main className="flex-1 overflow-auto">
-              {children}
-            </main>
-          </div>
+          {children}
         </Providers>
       </body>
     </html>

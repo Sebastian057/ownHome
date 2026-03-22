@@ -79,7 +79,18 @@ Każdy moduł **musi** zawierać dokładnie te pliki w tej kolejności:
 
 ---
 
-## 4. Bezpieczeństwo — reguły krytyczne
+## 4. Autentykacja
+
+Auth przez **Supabase Auth** (JWT). Brak publicznej rejestracji — konta tworzy admin z panelu (`supabase.auth.admin.createUser`).
+
+- Middleware (`middleware.ts`) chroni wszystkie trasy poza `/login` i `/auth/*`
+- Strony auth wywołują Supabase SDK bezpośrednio (wyjątek od API-first)
+- Pierwszy admin: ręcznie w Supabase Dashboard → auto-create profilu z `role: 'admin'`
+- Pełna dokumentacja: `.claude/skills/ownhome-auth/SKILL.md`
+
+---
+
+## 5. Bezpieczeństwo — reguły krytyczne
 
 ### 4.1 Ownership check (obowiązkowy w każdej operacji)
 
@@ -156,7 +167,7 @@ Klient (web i przyszły mobile) nasłuchuje na `401` i wywołuje Supabase `refre
 
 ---
 
-## 5. Reguły bazy danych
+## 6. Reguły bazy danych
 
 ### 5.1 Indeksy — obowiązkowe
 
@@ -208,7 +219,7 @@ Repository nigdy nie zwraca rekordów z `deletedAt !== null` w zapytaniach listu
 
 ---
 
-## 6. System eventów
+## 7. System eventów
 
 ### 6.1 Zasada
 
@@ -265,7 +276,7 @@ async createSubscription(data: CreateSubscriptionDto, userId: string) {
 
 ---
 
-## 7. Moduły — zakres (scope)
+## 8. Moduły — zakres (scope)
 
 ### Moduły core (faza 1 — jedyne dozwolone)
 
@@ -295,7 +306,7 @@ Claude Code **nie dodaje** żadnych innych modułów bez explicit instrukcji. Ni
 
 ---
 
-## 8. TypeScript — reguły
+## 9. TypeScript — reguły
 
 - **Zakaz `any`** — bezwzględny. Używaj `unknown` jeśli typ nie jest znany, następnie narrowing.
 - **Zakaz type assertion `as X`** poza uzasadnionymi wyjątkami z komentarzem.
@@ -313,7 +324,7 @@ const dto = data as CreateVehicleDto;
 
 ---
 
-## 9. Workflow Claude Code — kolejność generowania
+## 10. Workflow Claude Code — kolejność generowania
 
 Claude Code **zawsze** generuje pliki w tej kolejności. Żadnych skrótów.
 
@@ -332,7 +343,7 @@ Typy z kroku 1-3 są importowane w 4-7 — nie deklarowane ponownie.
 
 ---
 
-## 10. Zakazy bezwzględne
+## 11. Zakazy bezwzględne
 
 ```
 ❌ Logika biznesowa w UI
@@ -351,7 +362,7 @@ Typy z kroku 1-3 są importowane w 4-7 — nie deklarowane ponownie.
 
 ---
 
-## 11. Mobile-ready — zasady
+## 12. Mobile-ready — zasady
 
 - Autentykacja **tylko przez JWT** — bez cookies sesji.
 - Każdy endpoint zwraca `401` (nie redirect) gdy brak/wygasły token.
@@ -361,7 +372,7 @@ Typy z kroku 1-3 są importowane w 4-7 — nie deklarowane ponownie.
 
 ---
 
-## 12. Obsługa błędów
+## 13. Obsługa błędów
 
 ```ts
 // Kody błędów — stałe w /types/common.types.ts
@@ -381,7 +392,7 @@ Wszystkie błędy serwera są logowane (console.error w dev, Sentry/zewnętrzny 
 
 ---
 
-## 13. Przykładowy moduł — szkielet
+## 14. Przykładowy moduł — szkielet
 
 Poniżej minimalny, poprawny szkielet dla modułu `subscriptions`.
 

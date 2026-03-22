@@ -1,9 +1,5 @@
 {
   "permissions": {
-    "deny": [
-      "mcp__Claude_Preview__preview_start",
-      "mcp__Claude_Preview__preview_stop"
-    ],
     "allow": [
       "Bash(npx create-next-app@latest . --typescript --tailwind --app --no-src-dir --import-alias \"@/*\" --no-git --yes)",
       "Bash(npx create-next-app@latest . --typescript --tailwind --app --no-src-dir --import-alias \"@/*\" --no-git --yes --package-name ownhome)",
@@ -47,7 +43,21 @@
       "Bash(npx shadcn@latest init --preset radix-nova --force --reinstall)",
       "Bash(npx shadcn@latest init --preset nova --base radix --force --reinstall)",
       "Skill(update-config)",
-      "Skill(update-config:*)"
+      "Skill(update-config:*)",
+      "Bash(node -e \":*)",
+      "Bash(npx shadcn@latest add tabs switch avatar --yes)",
+      "Bash(netstat -ano)",
+      "Bash(findstr :3000)",
+      "Bash(taskkill /PID 47464 /F)",
+      "Bash(cmd /c \"taskkill /PID 47464 /F\")",
+      "Bash(cmd /c \"netstat -ano | findstr :3000\")",
+      "Bash(cmd /c \"tasklist | findstr node\")",
+      "Bash(ls -la \"D:\\\\Private Projects\\\\ownHome/app/\\(dashboard\\)/\")",
+      "Bash(grep -r \"Collapsible\\\\|Accordion\" 'D:/Private Projects/ownHome/node_modules/radix-ui/src' --include=*.ts -l)"
+    ],
+    "deny": [
+      "mcp__Claude_Preview__preview_start",
+      "mcp__Claude_Preview__preview_stop"
     ]
   }
 }
