@@ -17,6 +17,7 @@ UPDATE vehicles SET slug = 'pojazd' WHERE slug = '' OR slug IS NULL;
 DO $$
 DECLARE
   rec RECORD;
+  rec2 RECORD;
   counter INT;
 BEGIN
   FOR rec IN

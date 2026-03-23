@@ -70,6 +70,10 @@ import {
   type TemplateIncomeView,
   type BudgetCategoryView,
   type BudgetCategoryPlanView,
+  SOURCE_LABELS,
+  type TransactionSortField,
+  type SortDir,
+  type TransactionPageSize,
 } from "./budget.types";
 import type { ApiResponse } from "@/types/common.types";
 
@@ -540,7 +544,7 @@ export function PlannedExpensesTable({
                     <Button
                       size="sm"
                       variant="outline"
-                      className="h-7 px-2 text-xs border-primary/30 text-primary hover:bg-primary/10 hover:text-primary"
+                      className="h-7 px-2 text-xs border-primary/60 text-primary hover:bg-primary/10 hover:text-primary"
                       onClick={enterEditMode}
                     >
                       <Pencil className="h-3 w-3 mr-1" />
@@ -934,16 +938,6 @@ export function EditTransactionDialog({
 
 // ─── TransactionTable ─────────────────────────────────────────────────────────
 
-const SOURCE_LABELS = {
-  MANUAL: null,
-  SUBSCRIPTION: "Sub",
-  RECURRING: "Cykl",
-} as const;
-
-type SortField = "date" | "amount" | "title";
-type SortDir = "asc" | "desc";
-type PageSize = 20 | 50 | 100 | 200;
-
 export function TransactionTable({
   periodId,
   transactions,
@@ -958,15 +952,15 @@ export function TransactionTable({
   const [search, setSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [filterSource, setFilterSource] = useState<string>("all");
-  const [sortBy, setSortBy] = useState<SortField>("date");
+  const [sortBy, setSortBy] = useState<TransactionSortField>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState<PageSize>(20);
+  const [pageSize, setPageSize] = useState<TransactionPageSize>(20);
   const [showAdd, setShowAdd] = useState(false);
   const [editTx, setEditTx] = useState<TransactionView | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
 
-  function toggleSort(field: SortField) {
+  function toggleSort(field: TransactionSortField) {
     if (sortBy === field) {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     } else {
@@ -1005,7 +999,7 @@ export function TransactionTable({
     field,
     children,
   }: {
-    field: SortField;
+    field: TransactionSortField;
     children: React.ReactNode;
   }) {
     return (
@@ -1057,7 +1051,7 @@ export function TransactionTable({
               size="sm"
               variant="outline"
               onClick={() => setShowAdd(true)}
-              className="h-7 gap-1 text-xs border-primary/30 text-primary hover:bg-primary/10 hover:text-primary"
+              className="h-7 gap-1 text-xs border-primary/60 text-primary hover:bg-primary/10 hover:text-primary"
             >
               <Plus className="h-3 w-3" /> Dodaj
             </Button>
@@ -1233,7 +1227,7 @@ export function TransactionTable({
                 <Select
                   value={String(pageSize)}
                   onValueChange={(v) => {
-                    setPageSize(Number(v) as PageSize);
+                    setPageSize(Number(v) as TransactionPageSize);
                     setPage(1);
                   }}
                 >
@@ -1390,7 +1384,7 @@ export function IncomeSection({
               size="sm"
               variant="outline"
               onClick={() => setAdding(true)}
-              className="h-7 gap-1 text-xs border-primary/30 text-primary hover:bg-primary/10 hover:text-primary"
+              className="h-7 gap-1 text-xs border-primary/60 text-primary hover:bg-primary/10 hover:text-primary"
             >
               <Plus className="h-3 w-3" /> Dodaj
             </Button>
@@ -1489,7 +1483,7 @@ export function IncomeSection({
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-7 text-xs gap-1 border-primary/25 text-primary hover:bg-primary/10 hover:text-primary"
+                    className="h-7 text-xs gap-1 border-primary/60 text-primary hover:bg-primary/10 hover:text-primary"
                     onClick={() => startEdit(inc)}
                   >
                     <Pencil className="h-3 w-3" />

@@ -147,6 +147,7 @@ function enrichMaintenanceItem(
 }
 
 // ─── Budget integration helper ────────────────────────────────────────────────
+// Service-to-service call — never import budgetRepository directly (CLAUDE.md §2.2)
 
 async function createBudgetTransaction(
   payload: { amount: number; currency: string; category: string; date: Date; description?: string },
@@ -154,23 +155,18 @@ async function createBudgetTransaction(
   tags: string[]
 ): Promise<string | null> {
   try {
-    const { budgetRepository } = await import('@/modules/budget/budget.repository')
-    const date = payload.date
-    const period = await budgetRepository.getPeriodByYearMonth(
-      date.getFullYear(),
-      date.getMonth() + 1,
+    const { budgetService } = await import('@/modules/budget/budget.service')
+    return budgetService.recordExternalTransaction(
+      {
+        date: payload.date,
+        title: payload.description ?? 'Koszt pojazdu',
+        amount: payload.amount,
+        currency: payload.currency,
+        category: payload.category,
+        tags,
+      },
       userId
     )
-    if (!period) return null
-
-    const tx = await budgetRepository.createTransaction(period.id, userId, {
-      date: payload.date.toISOString().slice(0, 10),
-      title: payload.description ?? `Koszt pojazdu`,
-      amount: payload.amount,
-      category: payload.category,
-      tags,
-    })
-    return tx.id
   } catch {
     // Budget integration is best-effort — don't fail the vehicle operation
     return null

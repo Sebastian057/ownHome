@@ -490,6 +490,35 @@ export const budgetService = {
     if (result.count === 0) throw new AppError('NOT_FOUND')
   },
 
+  /**
+   * Best-effort transaction creation for inter-module integration.
+   * Looks up the budget period by date, silently returns null if no period exists.
+   * Used by other modules (e.g. vehicles) to record costs without coupling to repository layer.
+   */
+  async recordExternalTransaction(
+    payload: { date: Date; title: string; amount: number; currency: string; category: string; tags?: string[] },
+    userId: string
+  ): Promise<string | null> {
+    try {
+      const period = await budgetRepository.getPeriodByYearMonth(
+        payload.date.getFullYear(),
+        payload.date.getMonth() + 1,
+        userId
+      )
+      if (!period) return null
+      const tx = await budgetRepository.createTransaction(period.id, userId, {
+        date: payload.date.toISOString().slice(0, 10),
+        title: payload.title,
+        amount: payload.amount,
+        category: payload.category,
+        tags: payload.tags ?? [],
+      })
+      return tx.id
+    } catch {
+      return null
+    }
+  },
+
   // ─── Summary ─────────────────────────────────────────────────────────────────
 
   async getSummary(periodId: string, userId: string) {

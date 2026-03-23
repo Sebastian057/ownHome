@@ -7,6 +7,7 @@ import {
   SparklesIcon, CheckIcon, InfoIcon, ChevronDownIcon, ChevronUpIcon,
   ImageIcon, FileTextIcon, CameraIcon, RefreshCwIcon,
   ExternalLinkIcon, GaugeIcon, ArrowLeftIcon, XIcon,
+  BanknoteIcon, BuildingIcon,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,39 +39,13 @@ import type { ApiResponse } from "@/types/common.types";
 import type {
   VehicleListItem, VehicleDetail, InsuranceView, InspectionView,
   ServiceVisitView, ServiceVisitFileView, MaintenanceLogEntry,
-  VehicleCostsSummary, VinLookupResult,
+  VehicleCostsSummary, VinLookupResult, VehicleFormState,
 } from "./vehicles.types";
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const FUEL_TYPE_LABELS: Record<string, string> = {
-  petrol: "Benzyna", diesel: "Diesel", lpg: "LPG",
-  electric: "Elektryczny", hybrid: "Hybryda", hydrogen: "Wodór",
-};
-const TRANSMISSION_LABELS: Record<string, string> = {
-  manual: "Manualna", automatic: "Automatyczna", semi_automatic: "Półautomat", cvt: "CVT",
-};
-const INSURANCE_TYPE_OPTIONS = [
-  { value: "oc", label: "OC" },
-  { value: "ac", label: "AC" },
-  { value: "assistance", label: "Assistance" },
-  { value: "nnw", label: "NNW" },
-  { value: "other", label: "Inne" },
-];
-const INSPECTION_RESULT_LABELS: Record<string, string> = {
-  passed: "Pozytywny", passed_with_defects: "Z usterkami", failed: "Negatywny",
-};
-const MAINTENANCE_LOG_CATEGORIES = [
-  "Olej silnikowy", "Pasek rozrządu", "Łańcuch rozrządu",
-  "Hamulce przód", "Hamulce tył", "Płyn hamulcowy",
-  "Olej skrzyni biegów", "Płyn chłodzący", "Świece zapłonowe",
-  "Świece żarowe", "Filtr powietrza", "Filtr kabinowy",
-  "Filtr paliwa", "Płyn wspomagania", "Akumulator",
-  "Opony letnie", "Opony zimowe", "Opony całoroczne",
-  "Sprzęgło", "Zawieszenie przód", "Zawieszenie tył",
-  "Rozrząd", "Inne",
-];
-const CURRENCIES = ["PLN", "EUR", "USD", "GBP"];
+import { EMPTY_VEHICLE_FORM } from "./vehicles.types";
+import {
+  FUEL_TYPE_LABELS, TRANSMISSION_LABELS, INSURANCE_TYPE_OPTIONS,
+  INSPECTION_RESULT_LABELS, MAINTENANCE_LOG_CATEGORIES, CURRENCIES,
+} from "./vehicles.constants";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -293,18 +268,6 @@ function VehicleCard({
 
 // ─── VehicleFormDialog ─────────────────────────────────────────────────────────
 
-interface VehicleFormState {
-  name: string; licensePlate: string; vin: string; make: string; model: string;
-  year: string; color: string; engineType: string; engineCapacity: string;
-  fuelType: string; transmissionType: string; bodyType: string;
-  mileage: string; registrationExpiry: string;
-}
-const EMPTY_VEHICLE_FORM: VehicleFormState = {
-  name: "", licensePlate: "", vin: "", make: "", model: "", year: "",
-  color: "", engineType: "", engineCapacity: "", fuelType: "",
-  transmissionType: "", bodyType: "", mileage: "0", registrationExpiry: "",
-};
-
 function VehicleFormDialog({
   open, onClose, onSuccess, initial, editId,
 }: {
@@ -315,6 +278,14 @@ function VehicleFormDialog({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [vinLoading, setVinLoading] = useState(false);
+
+  // Reset form when dialog opens or target vehicle changes
+  useEffect(() => {
+    if (open) {
+      setForm({ ...EMPTY_VEHICLE_FORM, ...initial });
+      setError(null);
+    }
+  }, [open, editId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function set(key: keyof VehicleFormState, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -481,16 +452,30 @@ function InsuranceFormDialog({
   open: boolean; onClose: () => void; onSuccess: () => void;
   vehicleId: string; editItem?: InsuranceView;
 }) {
-  const [provider, setProvider] = useState(editItem?.provider ?? "");
-  const [policyNumber, setPolicyNumber] = useState(editItem?.policyNumber ?? "");
-  const [selectedTypes, setSelectedTypes] = useState<string[]>(editItem?.types ?? ["oc"]);
-  const [amount, setAmount] = useState(editItem?.amount ?? "");
-  const [currency, setCurrency] = useState(editItem?.currency ?? "PLN");
-  const [startDate, setStartDate] = useState(editItem?.startDate?.slice(0, 10) ?? "");
-  const [endDate, setEndDate] = useState(editItem?.endDate?.slice(0, 10) ?? "");
-  const [notes, setNotes] = useState(editItem?.notes ?? "");
+  const [provider, setProvider] = useState("");
+  const [policyNumber, setPolicyNumber] = useState("");
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(["oc"]);
+  const [amount, setAmount] = useState<string | number>("");
+  const [currency, setCurrency] = useState("PLN");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      setProvider(editItem?.provider ?? "");
+      setPolicyNumber(editItem?.policyNumber ?? "");
+      setSelectedTypes(editItem?.types ?? ["oc"]);
+      setAmount(editItem?.amount ?? "");
+      setCurrency(editItem?.currency ?? "PLN");
+      setStartDate(editItem?.startDate?.slice(0, 10) ?? "");
+      setEndDate(editItem?.endDate?.slice(0, 10) ?? "");
+      setNotes(editItem?.notes ?? "");
+      setError(null);
+    }
+  }, [open, editItem]);
 
   function toggleType(type: string) {
     setSelectedTypes((prev) =>
@@ -510,7 +495,7 @@ function InsuranceFormDialog({
       startDate,
       endDate,
       ...(policyNumber && { policyNumber: policyNumber.trim() }),
-      ...(notes && { notes: notes.trim() }),
+      notes: notes.trim() || null,
     };
     const res = editItem
       ? await updateInsurance(vehicleId, editItem.id, body)
@@ -523,12 +508,12 @@ function InsuranceFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto flex flex-col">
         <DialogHeader>
           <DialogTitle>{editItem ? "Edytuj polisę" : "Dodaj ubezpieczenie"}</DialogTitle>
           <DialogDescription>Uzupełnij dane polisy ubezpieczeniowej.</DialogDescription>
         </DialogHeader>
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 flex-1">
           <div className="flex flex-col gap-1.5">
             <Label>Ubezpieczyciel *</Label>
             <Input value={provider} onChange={(e) => setProvider(e.target.value)} placeholder="np. PZU, WARTA" />
@@ -699,75 +684,14 @@ function VehicleInsuranceTab({ vehicle, onRefresh }: { vehicle: VehicleDetail; o
       ) : (
         <div className="flex flex-col gap-3">
           {sorted.map((ins) => (
-            <Card key={ins.id} className="overflow-hidden">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex flex-col gap-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium">{ins.provider}</span>
-                      <InsuranceStatusBadge status={ins.status} />
-                    </div>
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {ins.types.map((t) => (
-                        <Badge key={t} variant="secondary" className="text-xs">
-                          {INSURANCE_TYPE_OPTIONS.find((o) => o.value === t)?.label ?? t}
-                        </Badge>
-                      ))}
-                    </div>
-                    {ins.policyNumber && (
-                      <span className="text-xs text-muted-foreground font-mono">{ins.policyNumber}</span>
-                    )}
-                  </div>
-                  <div className="flex gap-1 shrink-0">
-                    <Button
-                      variant="outline" size="sm"
-                      className="text-xs"
-                      onClick={() => setRenewItem(ins)}
-                    >
-                      <RefreshCwIcon className="size-3" />
-                      Odnów
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => { setEditItem(ins); setFormOpen(true); }}>
-                      <PencilIcon className="size-4" />
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                          <TrashIcon className="size-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Usuń polisę</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Czy na pewno usunąć polisę {ins.provider}?
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Anuluj</AlertDialogCancel>
-                          <AlertDialogAction
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            onClick={async () => { await deleteInsurance(vehicle.slug, ins.id); onRefresh(); }}
-                          >
-                            Usuń
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </div>
-                <Separator className="my-3" />
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-                  <span className="text-muted-foreground">Okres</span>
-                  <span className="font-mono text-xs">{fmtDate(ins.startDate)} – {fmtDate(ins.endDate)}</span>
-                  <span className="text-muted-foreground">Składka</span>
-                  <span className="font-mono">{fmt(ins.amount, ins.currency)}</span>
-                </div>
-                {ins.notes && (
-                  <p className="text-xs text-muted-foreground mt-2 border-t pt-2">{ins.notes}</p>
-                )}
-              </CardContent>
-            </Card>
+            <InsuranceCard
+              key={ins.id}
+              ins={ins}
+              vehicleSlug={vehicle.slug}
+              onEdit={() => { setEditItem(ins); setFormOpen(true); }}
+              onRenew={() => setRenewItem(ins)}
+              onDelete={onRefresh}
+            />
           ))}
         </div>
       )}
@@ -789,6 +713,109 @@ function VehicleInsuranceTab({ vehicle, onRefresh }: { vehicle: VehicleDetail; o
         />
       )}
     </div>
+  );
+}
+
+// ─── Insurance card ─────────────────────────────────────────────────────────
+
+function InsuranceCard({
+  ins, vehicleSlug, onEdit, onRenew, onDelete,
+}: {
+  ins: InsuranceView;
+  vehicleSlug: string;
+  onEdit: () => void;
+  onRenew: () => void;
+  onDelete: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const hasDetails = !!(ins.notes);
+
+  return (
+    <Card className="overflow-hidden">
+      <Collapsible open={open} onOpenChange={setOpen}>
+        <CollapsibleTrigger asChild>
+          <button type="button" className="flex items-center gap-2 px-4 py-3 w-full cursor-pointer select-none">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-base font-semibold">{ins.provider}</span>
+              <InsuranceStatusBadge status={ins.status} />
+            </div>
+            <div className="flex items-center gap-2 flex-wrap mt-3">
+              {ins.types.map((t) => (
+                <Badge key={t} variant="secondary" className="text-xs py-0">
+                  {INSURANCE_TYPE_OPTIONS.find((o) => o.value === t)?.label ?? t}
+                </Badge>
+              ))}
+              {ins.policyNumber && (
+                <span className="inline-flex items-center gap-1 text-sm text-muted-foreground font-mono border border-border/40 rounded px-2 py-0.5 bg-muted/60 select-all cursor-pointer hover:bg-muted/90 transition"
+                  title="Kliknij, aby skopiować"
+                  onClick={() => { navigator.clipboard.writeText(ins.policyNumber ?? ''); }}
+                >
+                  {ins.policyNumber}
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" className="size-3 ml-1 opacity-60"><path d="M5.5 2A1.5 1.5 0 0 0 4 3.5v7A1.5 1.5 0 0 0 5.5 12H6v-1h-.5a.5.5 0 0 1-.5-.5v-7a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 .5.5V4h1v-.5A1.5 1.5 0 0 0 10.5 2h-5ZM7 5.5A1.5 1.5 0 0 1 8.5 4h3A1.5 1.5 0 0 1 13 5.5v7A1.5 1.5 0 0 1 11.5 14h-3A1.5 1.5 0 0 1 7 12.5v-7ZM8.5 5a.5.5 0 0 0-.5.5v7a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.5-.5h-3Z" fill="currentColor"/></svg>
+                </span>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-x-6 gap-y-2 mt-2 text-xs text-muted-foreground">
+              <span className="flex items-center gap-2 min-w-[120px]">
+                <CalendarIcon className="size-3" />
+                <span className="font-medium text-foreground/80">Okres:</span>
+                {fmtDate(ins.startDate)} – {fmtDate(ins.endDate)}
+              </span>
+              <span className="flex items-center gap-2 min-w-[100px]">
+                <BanknoteIcon className="size-3" />
+                <span className="font-medium text-foreground/80">Kwota:</span>
+                {fmt(ins.amount, ins.currency)}
+              </span>
+            </div>
+            {/* Notatki tylko po rozwinięciu */}
+          </div>
+          <div className="flex items-center gap-0.5 shrink-0">
+            <Button variant="outline" size="sm" className="h-7 px-2 text-xs gap-1" onClick={(e) => { e.stopPropagation(); onRenew(); }}>
+              <RefreshCwIcon className="size-3" />Odnów
+            </Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground"
+              onClick={(e) => { e.stopPropagation(); onEdit(); }}>
+              <PencilIcon className="size-3.5" />
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                  onClick={(e) => e.stopPropagation()}>
+                  <TrashIcon className="size-3.5" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Usuń polisę</AlertDialogTitle>
+                  <AlertDialogDescription>Czy na pewno usunąć polisę {ins.provider}?</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                  <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={async () => { await deleteInsurance(vehicleSlug, ins.id); onDelete(); }}>
+                    Usuń
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            {hasDetails && (
+              <span className="h-7 w-7 flex items-center justify-center text-muted-foreground pointer-events-none">
+                {open ? <ChevronUpIcon className="size-4" /> : <ChevronDownIcon className="size-4" />}
+              </span>
+            )}
+          </div>
+          </button>
+        </CollapsibleTrigger>
+        {hasDetails && (
+          <CollapsibleContent>
+            <div className="px-4 pb-3 border-t pt-3">
+              {ins.notes && <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">{ins.notes}</p>}
+            </div>
+          </CollapsibleContent>
+        )}
+      </Collapsible>
+    </Card>
   );
 }
 
@@ -837,7 +864,7 @@ function InspectionFormDialog({
       ...(stationName && { stationName: stationName.trim() }),
       ...(mileage && { mileageAtService: Number(mileage) }),
       ...(cost && { cost: Number(cost) }),
-      ...(notes && { notes: notes.trim() }),
+      notes: notes.trim() || null,
     };
     const res = editItem
       ? await updateInspection(vehicleId, editItem.id, body)
@@ -850,12 +877,12 @@ function InspectionFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto flex flex-col">
         <DialogHeader>
           <DialogTitle>{editItem ? "Edytuj przegląd" : "Dodaj przegląd"}</DialogTitle>
           <DialogDescription>Uzupełnij dane przeglądu technicznego.</DialogDescription>
         </DialogHeader>
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 flex-1">
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label>Data przeglądu *</Label>
@@ -946,72 +973,13 @@ function VehicleInspectionsTab({ vehicle, onRefresh }: { vehicle: VehicleDetail;
       ) : (
         <div className="flex flex-col gap-3">
           {sorted.map((ins) => (
-            <Card key={ins.id}>
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium">{fmtDate(ins.date)}</span>
-                      {inspectionBadge(ins.result)}
-                    </div>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-sm mt-1">
-                      {ins.stationName && (
-                        <>
-                          <span className="text-muted-foreground">Stacja</span>
-                          <span>{ins.stationName}</span>
-                        </>
-                      )}
-                      {ins.nextDate && (
-                        <>
-                          <span className="text-muted-foreground">Następny</span>
-                          <span>{fmtDate(ins.nextDate)}</span>
-                        </>
-                      )}
-                      {ins.mileageAtService != null && (
-                        <>
-                          <span className="text-muted-foreground">Przebieg</span>
-                          <span className="font-mono">{ins.mileageAtService.toLocaleString("pl-PL")} km</span>
-                        </>
-                      )}
-                      {ins.cost && (
-                        <>
-                          <span className="text-muted-foreground">Koszt</span>
-                          <span className="font-mono">{fmt(ins.cost, ins.currency)}</span>
-                        </>
-                      )}
-                    </div>
-                    {ins.notes && <p className="text-xs text-muted-foreground mt-1">{ins.notes}</p>}
-                  </div>
-                  <div className="flex gap-1 shrink-0">
-                    <Button variant="ghost" size="icon" onClick={() => { setEditItem(ins); setFormOpen(true); }}>
-                      <PencilIcon className="size-4" />
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                          <TrashIcon className="size-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Usuń przegląd</AlertDialogTitle>
-                          <AlertDialogDescription>Czy na pewno usunąć ten przegląd?</AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Anuluj</AlertDialogCancel>
-                          <AlertDialogAction
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            onClick={async () => { await deleteInspection(vehicle.slug, ins.id); onRefresh(); }}
-                          >
-                            Usuń
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <InspectionCard
+              key={ins.id}
+              ins={ins}
+              vehicleSlug={vehicle.slug}
+              onEdit={() => { setEditItem(ins); setFormOpen(true); }}
+              onDelete={onRefresh}
+            />
           ))}
         </div>
       )}
@@ -1027,6 +995,107 @@ function VehicleInspectionsTab({ vehicle, onRefresh }: { vehicle: VehicleDetail;
   );
 }
 
+// ─── Inspection card ─────────────────────────────────────────────────────────
+
+function InspectionCard({
+  ins, vehicleSlug, onEdit, onDelete,
+}: {
+  ins: InspectionView;
+  vehicleSlug: string;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const hasDetails = !!(ins.notes);
+
+  return (
+    <Card className="overflow-hidden">
+      <Collapsible open={open} onOpenChange={setOpen}>
+        <CollapsibleTrigger asChild>
+          <button type="button" className="flex items-center gap-2 px-4 py-3 w-full cursor-pointer select-none">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-semibold tabular-nums">{fmtDate(ins.date)}</span>
+              {inspectionBadge(ins.result)}
+            </div>
+            <div className="flex flex-wrap gap-x-6 gap-y-2 mt-2 text-xs text-muted-foreground">
+              {ins.stationName && (
+                <span className="flex items-center gap-2 min-w-[120px]">
+                  <BuildingIcon className="size-3 shrink-0" />
+                  <span className="font-medium text-foreground/80">Stacja:</span>
+                  {ins.stationName}
+                </span>
+              )}
+              {ins.mileageAtService != null && (
+                <span className="flex items-center gap-2 min-w-[100px]">
+                  <GaugeIcon className="size-3" />
+                  <span className="font-medium text-foreground/80">Przebieg:</span>
+                  {ins.mileageAtService.toLocaleString("pl-PL")} km
+                </span>
+              )}
+              {ins.cost && (
+                <span className="flex items-center gap-2 min-w-[100px]">
+                  <BanknoteIcon className="size-3" />
+                  <span className="font-medium text-foreground/80">Koszt:</span>
+                  {fmt(ins.cost, ins.currency)}
+                </span>
+              )}
+              {ins.nextDate && (
+                <span className="flex items-center gap-2 min-w-[120px]">
+                  <CalendarIcon className="size-3" />
+                  <span className="font-medium text-foreground/80">Następny:</span>
+                  {fmtDate(ins.nextDate)}
+                </span>
+              )}
+            </div>
+            {/* Notatki tylko po rozwinięciu */}
+          </div>
+          <div className="flex items-center gap-0.5 shrink-0">
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground"
+              onClick={(e) => { e.stopPropagation(); onEdit(); }}>
+              <PencilIcon className="size-3.5" />
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                  onClick={(e) => e.stopPropagation()}>
+                  <TrashIcon className="size-3.5" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Usuń przegląd</AlertDialogTitle>
+                  <AlertDialogDescription>Czy na pewno usunąć przegląd z {fmtDate(ins.date)}?</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                  <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={async () => { await deleteInspection(vehicleSlug, ins.id); onDelete(); }}>
+                    Usuń
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            {hasDetails && (
+              <span className="h-7 w-7 flex items-center justify-center text-muted-foreground pointer-events-none">
+                {open ? <ChevronUpIcon className="size-4" /> : <ChevronDownIcon className="size-4" />}
+              </span>
+            )}
+          </div>
+          </button>
+        </CollapsibleTrigger>
+        {hasDetails && (
+          <CollapsibleContent>
+            <div className="px-4 pb-3 border-t pt-3">
+              {ins.notes && <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">{ins.notes}</p>}
+            </div>
+          </CollapsibleContent>
+        )}
+      </Collapsible>
+    </Card>
+  );
+}
+
 // ─── Service Visits ───────────────────────────────────────────────────────────
 
 
@@ -1036,14 +1105,26 @@ function ServiceVisitEditDialog({
   open: boolean; onClose: () => void; onSuccess: () => void;
   vehicleId: string; visit: ServiceVisitView;
 }) {
-  const [date, setDate] = useState(visit.date.slice(0, 10));
-  const [shopName, setShopName] = useState(visit.shopName ?? "");
-  const [mileage, setMileage] = useState(visit.mileageAtService?.toString() ?? "");
-  const [cost, setCost] = useState(visit.totalCost ?? "");
-  const [currency, setCurrency] = useState(visit.currency);
-  const [notes, setNotes] = useState(visit.notes ?? "");
+  const [date, setDate] = useState("");
+  const [shopName, setShopName] = useState("");
+  const [mileage, setMileage] = useState("");
+  const [cost, setCost] = useState<string>("");
+  const [currency, setCurrency] = useState("PLN");
+  const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      setDate(visit.date.slice(0, 10));
+      setShopName(visit.shopName ?? "");
+      setMileage(visit.mileageAtService?.toString() ?? "");
+      setCost(visit.totalCost ?? "");
+      setCurrency(visit.currency);
+      setNotes(visit.notes ?? "");
+      setError(null);
+    }
+  }, [open, visit]);
 
   async function handleSubmit() {
     setLoading(true);
@@ -1054,7 +1135,7 @@ function ServiceVisitEditDialog({
       ...(shopName && { shopName: shopName.trim() }),
       ...(mileage && { mileageAtService: Number(mileage) }),
       ...(cost && { totalCost: Number(cost) }),
-      ...(notes && { notes: notes.trim() }),
+      notes: notes.trim() || null,
     };
     const res = await updateServiceVisit(vehicleId, visit.id, body);
     setLoading(false);
@@ -1065,12 +1146,12 @@ function ServiceVisitEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto flex flex-col">
         <DialogHeader>
           <DialogTitle>Edytuj wizytę serwisową</DialogTitle>
           <DialogDescription>Zmień dane wizyty serwisowej.</DialogDescription>
         </DialogHeader>
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 flex-1">
           <div className="flex flex-col gap-1.5">
             <Label>Data *</Label>
             <Input value={date} onChange={(e) => setDate(e.target.value)} type="date" />
@@ -1151,102 +1232,154 @@ function ServiceVisitCard({
       <Card className="overflow-hidden">
         <Collapsible open={open} onOpenChange={setOpen}>
           {/* Header — always visible */}
-          <div className="p-4 flex items-start justify-between gap-3">
-            <div className="flex flex-col gap-1 min-w-0">
+          <CollapsibleTrigger asChild>
+            <button type="button" className="flex items-center gap-2 px-4 py-3 w-full cursor-pointer select-none">
+            {/* Left: date + meta */}
+            <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-medium">{fmtDate(visit.date)}</span>
+                <span className="text-sm font-semibold tabular-nums">{fmtDate(visit.date)}</span>
                 {visit.shopName && (
-                  <span className="text-sm text-muted-foreground">{visit.shopName}</span>
+                  <span className="text-sm text-muted-foreground truncate max-w-[160px]">{visit.shopName}</span>
                 )}
                 {visit.aiSuggestions && visit.aiSuggestions.length > 0 && (
-                  <Badge variant="secondary" className="text-xs gap-1">
-                    <SparklesIcon className="size-3" />
-                    AI
+                  <Badge variant="secondary" className="text-[10px] gap-1 py-0">
+                    <SparklesIcon className="size-3" />AI
                   </Badge>
                 )}
               </div>
-              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <div className="flex flex-wrap gap-x-6 gap-y-2 mt-2 text-xs text-muted-foreground">
                 {visit.mileageAtService != null && (
-                  <span className="font-mono flex items-center gap-1">
+                  <span className="flex items-center gap-2 min-w-[100px]">
                     <GaugeIcon className="size-3" />
+                    <span className="font-medium text-foreground/80">Przebieg:</span>
                     {visit.mileageAtService.toLocaleString("pl-PL")} km
                   </span>
                 )}
                 {visit.totalCost && (
-                  <span className="font-mono">{fmt(visit.totalCost, visit.currency)}</span>
+                  <span className="flex items-center gap-2 min-w-[100px]">
+                    <BanknoteIcon className="size-3" />
+                    <span className="font-medium text-foreground/80">Koszt:</span>
+                    {fmt(visit.totalCost, visit.currency)}
+                  </span>
                 )}
-                {(visit.files ?? []).length > 0 && (
-                  <span className="flex items-center gap-1">
+                {imageFiles.length > 0 && (
+                  <span className="flex items-center gap-2 min-w-[80px]">
                     <ImageIcon className="size-3" />
-                    {visit.files.length}
+                    <span className="font-medium text-foreground/80">Zdjęć:</span>
+                    {imageFiles.length}
+                  </span>
+                )}
+                {pdfFiles.length > 0 && (
+                  <span className="flex items-center gap-2 min-w-[80px]">
+                    <FileTextIcon className="size-3" />
+                    <span className="font-medium text-foreground/80">PDF:</span>
+                    {pdfFiles.length}
                   </span>
                 )}
               </div>
+              {/* Notatki tylko po rozwinięciu */}
             </div>
-            <div className="flex items-center gap-1 shrink-0">
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  {open ? <ChevronUpIcon className="size-4" /> : <ChevronDownIcon className="size-4" />}
-                </Button>
-              </CollapsibleTrigger>
+
+            {/* Right: actions */}
+            <div className="flex items-center gap-0.5 shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                title="Edytuj"
+                onClick={(e) => { e.stopPropagation(); setEditOpen(true); }}
+              >
+                <PencilIcon className="size-3.5" />
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                    title="Usuń"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <TrashIcon className="size-3.5" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Usuń wizytę serwisową</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Czy na pewno usunąć wizytę z {fmtDate(visit.date)}?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      onClick={async () => { await deleteServiceVisit(vehicleId, visit.id); onRefresh(); }}
+                    >
+                      Usuń
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              <span className="h-7 w-7 flex items-center justify-center text-muted-foreground pointer-events-none">
+                {open ? <ChevronUpIcon className="size-4" /> : <ChevronDownIcon className="size-4" />}
+              </span>
             </div>
-          </div>
+            </button>
+          </CollapsibleTrigger>
 
           {/* Expanded content */}
           <CollapsibleContent>
-            <div className="px-4 py-3 flex flex-col gap-3 border-t">
-              {/* Notes */}
+            <div className="px-4 pb-3 flex flex-col gap-3 border-t pt-3">
+              {/* Notes — full */}
               {visit.notes && (
-                <p className="text-sm text-muted-foreground">{visit.notes}</p>
+                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">{visit.notes}</p>
               )}
 
-              {/* Image gallery */}
+              {/* Image strip */}
               {imageFiles.length > 0 && (
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-2">Zdjęcia</p>
-                  <div className="grid grid-cols-3 gap-2">
-                    {imageFiles.map((f, idx) => (
-                      <button
-                        key={f.id}
-                        type="button"
-                        onClick={() => openLightbox(idx)}
-                        className="relative aspect-square rounded-md overflow-hidden border bg-muted hover:opacity-90 transition-opacity"
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={f.fileUrl} alt={f.fileName} className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/20 transition-colors">
-                          <ImageIcon className="size-4 text-white opacity-0 hover:opacity-100" />
-                        </div>
-                      </button>
-                    ))}
-                  </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {imageFiles.map((f, idx) => (
+                    <button
+                      key={f.id}
+                      type="button"
+                      onClick={() => openLightbox(idx)}
+                      className="relative h-12 w-12 shrink-0 rounded-md overflow-hidden border bg-muted hover:ring-2 hover:ring-primary/50 transition-all"
+                      title={f.fileName}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={f.fileUrl} alt={f.fileName} className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                  {imageFiles.length > 1 && (
+                    <span className="text-xs text-muted-foreground ml-1">
+                      {imageFiles.length} zdjęć · kliknij aby otworzyć
+                    </span>
+                  )}
                 </div>
               )}
 
               {/* PDF files */}
               {pdfFiles.length > 0 && (
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-2">Dokumenty</p>
-                  <div className="flex flex-col gap-1">
-                    {pdfFiles.map((f) => (
-                      <a
-                        key={f.id}
-                        href={f.fileUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-sm hover:text-primary transition-colors p-1.5 rounded hover:bg-muted"
-                      >
-                        <FileTextIcon className="size-4 shrink-0 text-muted-foreground" />
-                        <span className="truncate">{f.fileName}</span>
-                        <ExternalLinkIcon className="size-3 ml-auto shrink-0 text-muted-foreground" />
-                      </a>
-                    ))}
-                  </div>
+                <div className="flex flex-col gap-1">
+                  {pdfFiles.map((f) => (
+                    <a
+                      key={f.id}
+                      href={f.fileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors p-1.5 -mx-1.5 rounded hover:bg-muted"
+                    >
+                      <FileTextIcon className="size-3.5 shrink-0" />
+                      <span className="truncate">{f.fileName}</span>
+                      <ExternalLinkIcon className="size-3 ml-auto shrink-0" />
+                    </a>
+                  ))}
                 </div>
               )}
 
-              {/* File upload + actions */}
-              <div className="flex items-center gap-2 flex-wrap">
+              {/* Upload */}
+              <div className="border-t pt-2.5">
                 <input
                   ref={fileRef}
                   type="file"
@@ -1255,43 +1388,15 @@ function ServiceVisitCard({
                   onChange={handleFileUpload}
                 />
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
+                  className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
                   onClick={() => fileRef.current?.click()}
                   disabled={uploading}
                 >
                   {uploading ? <Spinner data-icon="inline-start" /> : <UploadIcon data-icon="inline-start" />}
-                  Dodaj plik
+                  Dodaj zdjęcie / dokument
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => setEditOpen(true)}>
-                  <PencilIcon data-icon="inline-start" />
-                  Edytuj
-                </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive ml-auto">
-                      <TrashIcon data-icon="inline-start" />
-                      Usuń
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Usuń wizytę serwisową</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Czy na pewno usunąć wizytę z {fmtDate(visit.date)}?
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Anuluj</AlertDialogCancel>
-                      <AlertDialogAction
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        onClick={async () => { await deleteServiceVisit(vehicleId, visit.id); onRefresh(); }}
-                      >
-                        Usuń
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
               </div>
             </div>
           </CollapsibleContent>
@@ -1341,7 +1446,7 @@ function ServiceVisitFormDialog({
       ...(shopName && { shopName: shopName.trim() }),
       ...(mileage && { mileageAtService: Number(mileage) }),
       ...(cost && { totalCost: Number(cost) }),
-      ...(notes && { notes: notes.trim() }),
+      notes: notes.trim() || null,
     };
     const res = await createServiceVisit(vehicleId, body);
     setLoading(false);
@@ -1482,7 +1587,7 @@ function MaintenanceLogFormDialog({
       ...(label && { label: label.trim() }),
       ...(mileage && { mileage: Number(mileage) }),
       ...(cost && { cost: Number(cost) }),
-      ...(notes && { notes: notes.trim() }),
+      notes: notes.trim() || null,
     };
     const res = await createMaintenanceLog(vehicleId, body);
     setLoading(false);
@@ -1600,7 +1705,7 @@ function MaintenanceLogEditDialog({
       ...(label && { label: label.trim() }),
       ...(mileage && { mileage: Number(mileage) }),
       ...(cost && { cost: Number(cost) }),
-      ...(notes !== "" ? { notes: notes.trim() } : { notes: null }),
+      notes: notes.trim() || null,
     };
     const res = await updateMaintenanceLog(vehicleId, entry.id, body);
     setLoading(false);
@@ -1661,7 +1766,7 @@ function MaintenanceLogEditDialog({
   );
 }
 
-function VehicleMaintenanceTab({ vehicleId }: { vehicleId: string }) {
+function VehicleMaintenanceTab({ vehicleSlug }: { vehicleSlug: string }) {
   const [logs, setLogs] = useState<MaintenanceLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -1671,13 +1776,13 @@ function VehicleMaintenanceTab({ vehicleId }: { vehicleId: string }) {
 
   async function load() {
     setLoading(true);
-    const res = await fetchMaintenanceLogs(vehicleId);
+    const res = await fetchMaintenanceLogs(vehicleSlug);
     if (res.error) setError(res.error.message);
     else setLogs(res.data);
     setLoading(false);
   }
 
-  useEffect(() => { load(); }, [vehicleId]);
+  useEffect(() => { load(); }, [vehicleSlug]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function toggleCategory(cat: string) {
     setOpenCategories((prev) => {
@@ -1709,9 +1814,8 @@ function VehicleMaintenanceTab({ vehicleId }: { vehicleId: string }) {
   });
 
   return (
-    <TooltipProvider>
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
             {logs.length} {logs.length === 1 ? "wpis" : "wpisów"} w {categories.length} {categories.length === 1 ? "kategorii" : "kategoriach"}
           </p>
@@ -1740,21 +1844,27 @@ function VehicleMaintenanceTab({ vehicleId }: { vehicleId: string }) {
                 <Card key={cat} className="overflow-hidden">
                   <Collapsible open={isOpen} onOpenChange={() => toggleCategory(cat)}>
                     <CollapsibleTrigger asChild>
-                      <button type="button" className="w-full px-4 py-3 flex items-center justify-between gap-3 text-left hover:bg-muted/30 transition-colors">
-                        <div className="flex flex-col gap-0.5 min-w-0">
-                          <span className="font-medium">{cat}</span>
-                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                            <span>Ostatnio: {fmtDate(latest.date)}</span>
+                      <button type="button" className="w-full px-4 py-3 flex items-center justify-between gap-3 text-left hover:bg-muted/30 transition-colors cursor-pointer select-none">
+                        <div className="flex flex-col gap-1 min-w-0">
+                          <span className="font-medium text-base">{cat}</span>
+                          <div className="flex flex-wrap gap-x-6 gap-y-2 mt-2 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-2 min-w-[120px]">
+                              <CalendarIcon className="size-3" />
+                              <span className="font-medium text-foreground/80">Ostatnio:</span>
+                              {fmtDate(latest.date)}
+                            </span>
                             {latest.mileage != null && (
-                              <span className="font-mono">{latest.mileage.toLocaleString("pl-PL")} km</span>
+                              <span className="flex items-center gap-2 min-w-[100px]">
+                                <GaugeIcon className="size-3" />
+                                <span className="font-medium text-foreground/80">Przebieg:</span>
+                                {latest.mileage.toLocaleString("pl-PL")} km
+                              </span>
                             )}
-                            {latest.cost && (
-                              <span className="font-mono">{fmt(latest.cost, latest.currency)}</span>
-                            )}
+                            {/* koszt usunięty */}
                             <Badge variant="secondary" className="text-xs">{entries.length}x</Badge>
                           </div>
                         </div>
-                        <div className="shrink-0 text-muted-foreground">
+                        <div className="shrink-0 text-muted-foreground pointer-events-none">
                           {isOpen ? <ChevronUpIcon className="size-4" /> : <ChevronDownIcon className="size-4" />}
                         </div>
                       </button>
@@ -1765,48 +1875,41 @@ function VehicleMaintenanceTab({ vehicleId }: { vehicleId: string }) {
                           <div
                             key={entry.id}
                             className={cn(
-                              "px-4 py-2.5 flex items-start justify-between gap-3",
+                              "px-4 py-3 flex items-start justify-between gap-3",
                               idx < entries.length - 1 && "border-b border-border/50"
                             )}
                           >
-                            <div className="flex flex-col gap-0.5 min-w-0">
+                            <div className="flex flex-col gap-1 min-w-0 flex-1">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-sm">{fmtDate(entry.date)}</span>
+                                <span className="text-sm font-medium tabular-nums">{fmtDate(entry.date)}</span>
                                 {entry.label && (
-                                  <span className="text-sm text-muted-foreground">{entry.label}</span>
+                                  <span className="text-xs text-muted-foreground truncate max-w-[180px]">{entry.label}</span>
                                 )}
                               </div>
-                              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                              <div className="flex flex-wrap gap-x-6 gap-y-2 mt-2 text-xs text-muted-foreground">
                                 {entry.mileage != null && (
-                                  <span className="font-mono">{entry.mileage.toLocaleString("pl-PL")} km</span>
+                                  <span className="flex items-center gap-2 min-w-[100px]">
+                                    <GaugeIcon className="size-3" />
+                                    <span className="font-medium text-foreground/80">Przebieg:</span>
+                                    {entry.mileage.toLocaleString("pl-PL")} km
+                                  </span>
                                 )}
-                                {entry.cost && (
-                                  <span className="font-mono">{fmt(entry.cost, entry.currency)}</span>
-                                )}
+                                {/* koszt usunięty */}
                               </div>
-                            </div>
-                            <div className="flex items-center gap-1 shrink-0">
                               {entry.notes && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="size-7 text-muted-foreground">
-                                      <InfoIcon className="size-3.5" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="left" className="max-w-xs">
-                                    <p className="text-sm">{entry.notes}</p>
-                                  </TooltipContent>
-                                </Tooltip>
+                                <p className="mt-1 text-xs text-muted-foreground leading-relaxed whitespace-pre-line">{entry.notes}</p>
                               )}
+                            </div>
+                            <div className="flex items-center gap-0.5 shrink-0">
                               <Button
-                                variant="ghost" size="icon" className="size-7 text-muted-foreground"
+                                variant="ghost" size="icon" className="size-7 text-muted-foreground hover:text-foreground"
                                 onClick={() => setEditEntry(entry)}
                               >
                                 <PencilIcon className="size-3.5" />
                               </Button>
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="size-7 text-destructive hover:text-destructive">
+                                  <Button variant="ghost" size="icon" className="size-7 text-muted-foreground hover:text-destructive">
                                     <TrashIcon className="size-3.5" />
                                   </Button>
                                 </AlertDialogTrigger>
@@ -1821,7 +1924,7 @@ function VehicleMaintenanceTab({ vehicleId }: { vehicleId: string }) {
                                     <AlertDialogCancel>Anuluj</AlertDialogCancel>
                                     <AlertDialogAction
                                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                      onClick={async () => { await deleteMaintenanceLog(vehicleId, entry.id); load(); }}
+                                      onClick={async () => { await deleteMaintenanceLog(vehicleSlug, entry.id); load(); }}
                                     >
                                       Usuń
                                     </AlertDialogAction>
@@ -1844,19 +1947,18 @@ function VehicleMaintenanceTab({ vehicleId }: { vehicleId: string }) {
           open={formOpen}
           onClose={() => setFormOpen(false)}
           onSuccess={load}
-          vehicleId={vehicleId}
+          vehicleId={vehicleSlug}
         />
         {editEntry && (
           <MaintenanceLogEditDialog
             open={true}
             onClose={() => setEditEntry(null)}
             onSuccess={() => { setEditEntry(null); load(); }}
-            vehicleId={vehicleId}
+            vehicleId={vehicleSlug}
             entry={editEntry}
           />
         )}
       </div>
-    </TooltipProvider>
   );
 }
 
@@ -1930,11 +2032,11 @@ function VehicleInfoTab({
         </Button>
       </div>
 
-      {/* Photo */}
-      <div>
+      {/* Photo + key stats row */}
+      <div className="flex items-stretch gap-4">
         <input ref={photoRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
         <div
-          className="group relative w-full h-52 rounded-lg overflow-hidden bg-muted border cursor-pointer"
+          className="group relative h-24 w-24 shrink-0 rounded-xl overflow-hidden bg-muted border cursor-pointer"
           onClick={() => photoRef.current?.click()}
         >
           {vehicle.photoUrl ? (
@@ -1942,17 +2044,31 @@ function VehicleInfoTab({
             <img src={vehicle.photoUrl} alt={vehicle.name} className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <CarIcon className="size-16 text-muted-foreground/30" />
+              <CarIcon className="size-10 text-muted-foreground/30" />
             </div>
           )}
-          <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition-colors">
+          <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/50 transition-colors rounded-xl">
             {photoUploading ? (
-              <Spinner className="size-8 text-white" />
+              <Spinner className="size-5 text-white" />
             ) : (
-              <div className="opacity-0 group-hover:opacity-100 flex flex-col items-center gap-1 text-white transition-opacity">
-                <CameraIcon className="size-8" />
-                <span className="text-sm font-medium">{vehicle.photoUrl ? "Zmień zdjęcie" : "Dodaj zdjęcie"}</span>
-              </div>
+              <CameraIcon className="size-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+            )}
+          </div>
+        </div>
+        <div className="flex flex-col justify-center gap-1 min-w-0">
+          <p className="text-base font-semibold leading-tight">{vehicle.name}</p>
+          {(vehicle.make || vehicle.model || vehicle.year) && (
+            <p className="text-sm text-muted-foreground">{[vehicle.make, vehicle.model, vehicle.year].filter(Boolean).join(" ")}</p>
+          )}
+          <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
+            <span className="flex items-center gap-1 font-mono">
+              <GaugeIcon className="size-3" />{vehicle.mileage.toLocaleString("pl-PL")} km
+            </span>
+            <span className="flex items-center gap-1 font-mono border border-border/50 rounded px-1.5 py-0.5 bg-muted/50">
+              {vehicle.licensePlate}
+            </span>
+            {vehicle.fuelType && (
+              <span>{FUEL_TYPE_LABELS[vehicle.fuelType]}</span>
             )}
           </div>
         </div>
@@ -2007,7 +2123,7 @@ function VehicleInfoTab({
 // ─── VehicleDetailPage ────────────────────────────────────────────────────────
 
 export function VehicleDetailPage({
-  vehicleId, onBack,
+  vehicleId: vehicleSlug, onBack,
 }: {
   vehicleId: string; onBack: () => void;
 }) {
@@ -2019,15 +2135,17 @@ export function VehicleDetailPage({
 
   async function load(silent = false) {
     if (!silent) setLoading(true);
-    const res = await fetchVehicleDetail(vehicleId);
+    const [res, costsRes] = await Promise.all([
+      fetchVehicleDetail(vehicleSlug),
+      fetchCosts(vehicleSlug, new Date().getFullYear()),
+    ]);
     if (res.error) { setError(res.error.message); if (!silent) setLoading(false); return; }
     setVehicle(res.data);
-    if (!silent) setLoading(false);
-    const costsRes = await fetchCosts(vehicleId, new Date().getFullYear());
     if (!costsRes.error) setCosts(costsRes.data);
+    if (!silent) setLoading(false);
   }
 
-  useEffect(() => { load(); }, [vehicleId]);
+  useEffect(() => { load(); }, [vehicleSlug]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) {
     return (
@@ -2121,28 +2239,30 @@ export function VehicleDetailPage({
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full justify-start">
-          <TabsTrigger value="info">Informacje</TabsTrigger>
-          <TabsTrigger value="insurance">
-            Ubezpieczenia
-            {vehicle.insurances.length > 0 && (
-              <span className="ml-1.5 inline-flex items-center justify-center rounded-full bg-primary text-primary-foreground px-1.5 py-px text-[10px] font-bold leading-none min-w-[16px]">{vehicle.insurances.length}</span>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="inspections">
-            Przeglądy
-            {vehicle.inspections.length > 0 && (
-              <span className="ml-1.5 inline-flex items-center justify-center rounded-full bg-primary text-primary-foreground px-1.5 py-px text-[10px] font-bold leading-none min-w-[16px]">{vehicle.inspections.length}</span>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="service">
-            Serwis
-            {vehicle.serviceVisits.length > 0 && (
-              <span className="ml-1.5 inline-flex items-center justify-center rounded-full bg-primary text-primary-foreground px-1.5 py-px text-[10px] font-bold leading-none min-w-[16px]">{vehicle.serviceVisits.length}</span>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="maintenance">Eksploatacja</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto">
+          <TabsList className="w-full justify-start min-w-max">
+            <TabsTrigger value="info">Informacje</TabsTrigger>
+            <TabsTrigger value="insurance">
+              Ubezpieczenia
+              {vehicle.insurances.length > 0 && (
+                <span className="ml-1.5 inline-flex items-center justify-center rounded-full bg-primary text-primary-foreground px-1.5 py-px text-[10px] font-bold leading-none min-w-[16px]">{vehicle.insurances.length}</span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="inspections">
+              Przeglądy
+              {vehicle.inspections.length > 0 && (
+                <span className="ml-1.5 inline-flex items-center justify-center rounded-full bg-primary text-primary-foreground px-1.5 py-px text-[10px] font-bold leading-none min-w-[16px]">{vehicle.inspections.length}</span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="service">
+              Serwis
+              {vehicle.serviceVisits.length > 0 && (
+                <span className="ml-1.5 inline-flex items-center justify-center rounded-full bg-primary text-primary-foreground px-1.5 py-px text-[10px] font-bold leading-none min-w-[16px]">{vehicle.serviceVisits.length}</span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="maintenance">Eksploatacja</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="info" className="mt-4">
           <VehicleInfoTab vehicle={vehicle} onRefresh={() => load(true)} />
@@ -2161,7 +2281,7 @@ export function VehicleDetailPage({
         </TabsContent>
 
         <TabsContent value="maintenance" className="mt-4">
-          <VehicleMaintenanceTab vehicleId={vehicleId} />
+          <VehicleMaintenanceTab vehicleSlug={vehicleSlug} />
         </TabsContent>
       </Tabs>
     </div>
