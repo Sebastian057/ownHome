@@ -64,29 +64,30 @@
 /* ============================================================
    CSS variables — L C H kanały (bez oklch wrappera)
 
-   Paleta: warm coral primary (#DF664D), neutralne szarości
-   Sidebar: gradient #717171→#3E3E3E (na komponencie)
+   Paleta: fintech blue (#2A63E0) jako primary, neutralne szarości
+   Sidebar: gradient #717171→#3E3E3E (na komponencie, bez zmian)
    ============================================================ */
 :root {
-  --background:            0.928 0 0;
-  --foreground:            0.145 0 0;
-  --card:                  1 0 0;
-  --card-foreground:       0.145 0 0;
-  --popover:               1 0 0;
-  --popover-foreground:    0.145 0 0;
+  /* Warm cream base — złamana bieł z odrobiną ciepła */
+  --background:            0.965 0.006 60;
+  --foreground:            0.12 0.01 260;
+  --card:                  0.995 0.002 60;
+  --card-foreground:       0.12 0.01 260;
+  --popover:               0.995 0.002 60;
+  --popover-foreground:    0.12 0.01 260;
 
-  /* Primary — warm coral (#DF664D → ciemniejszy terracotta dla WCAG AA 4.5:1 z białym) */
-  --primary:               0.57 0.157 33.2;
+  /* Primary — deep indigo-blue (#3B5BDB) — klasyczny fintech, WCAG AA */
+  --primary:               0.51 0.22 243;
   --primary-foreground:    1 0 0;
 
-  --secondary:             0.931 0 0;
-  --secondary-foreground:  0.35 0 0;
+  --secondary:             0.928 0.012 35;
+  --secondary-foreground:  0.28 0.06 30;
 
-  --muted:                 0.943 0 0;
-  --muted-foreground:      0.50 0 0;
+  --muted:                 0.94 0.01 260;
+  --muted-foreground:      0.38 0.04 260;
 
-  --accent:                0.94 0.01 33;
-  --accent-foreground:     0.35 0 0;
+  --accent:                0.94 0.04 320;
+  --accent-foreground:     0.25 0.08 340;
 
   --destructive:           0.577 0.245 27.325;
   --destructive-foreground: 1 0 0;
@@ -97,49 +98,51 @@
   --warning:               0.72 0.15 75;
   --warning-foreground:    0.20 0.05 75;
 
-  --border:                0.88 0 0;
-  --input:                 0.88 0 0;
-  --ring:                  0.653 0.157 33.2;
+  --border:                0.86 0.015 35;
+  --input:                 0.86 0.015 35;
+  --ring:                  0.51 0.22 243;
 
-  --chart-1: 0.653 0.157 33.2;
-  --chart-2: 0.58 0.16 145;
-  --chart-3: 0.72 0.15 75;
-  --chart-4: 0.577 0.245 27.325;
-  --chart-5: 0.62 0.1 310;
+  --chart-1: 0.51 0.22 243;
+  --chart-2: 0.60 0.18 340;
+  --chart-3: 0.58 0.16 145;
+  --chart-4: 0.72 0.15 75;
+  --chart-5: 0.577 0.245 27.325;
 
   --radius: 0.5rem;
 
-  /* Sidebar — fallback (gradient na komponencie) */
-  --sidebar:                    0.364 0 0;
-  --sidebar-foreground:         0.92 0 0;
-  --sidebar-primary:            0.57 0.157 33.2;
+  /* Sidebar — dark indigo (premium fintech, niezależny od trybu jasnego) */
+  --sidebar-from:               0.28 0.18 255;
+  --sidebar-to:                 0.18 0.14 250;
+  --sidebar:                    0.23 0.16 253;
+  --sidebar-foreground:         0.97 0 0;
+  --sidebar-primary:            0.64 0.22 243;
   --sidebar-primary-foreground: 1 0 0;
-  --sidebar-accent:             0.44 0 0;
-  --sidebar-accent-foreground:  0.95 0 0;
-  --sidebar-border:             1 0 0 / 10%;
-  --sidebar-ring:               0.653 0.157 33.2;
+  --sidebar-accent:             1 0 0 / 9%;
+  --sidebar-accent-foreground:  1 0 0;
+  --sidebar-border:             1 0 0 / 12%;
+  --sidebar-ring:               0.64 0.22 243;
 }
 
 .dark {
-  --background:            0.145 0 0;
-  --foreground:            0.92 0 0;
-  --card:                  0.20 0 0;
-  --card-foreground:       0.92 0 0;
-  --popover:               0.20 0 0;
-  --popover-foreground:    0.92 0 0;
+  --background:            0.13 0.025 252;
+  --foreground:            0.93 0.01 250;
+  --card:                  0.19 0.028 250;
+  --card-foreground:       0.93 0.01 250;
+  --popover:               0.19 0.028 250;
+  --popover-foreground:    0.93 0.01 250;
 
-  /* Primary — jaśniejsza wersja coral w dark mode */
-  --primary:               0.72 0.157 33.2;
-  --primary-foreground:    0.145 0 0;
+  /* Primary — jasny indigo-blue w dark mode */
+  --primary:               0.67 0.20 243;
+  --primary-foreground:    1 0 0;
 
-  --secondary:             0.25 0 0;
-  --secondary-foreground:  0.85 0 0;
+  --secondary:             0.23 0.03 250;
+  --secondary-foreground:  0.80 0.015 250;
 
-  --muted:                 0.25 0 0;
-  --muted-foreground:      0.62 0 0;
+  --muted:                 0.22 0.03 250;
+  --muted-foreground:      0.58 0.04 248;
 
-  --accent:                0.28 0.01 33;
-  --accent-foreground:     0.88 0 0;
+  --accent:                0.26 0.06 295;
+  --accent-foreground:     0.90 0 0;
 
   --destructive:           0.704 0.191 22.216;
   --destructive-foreground: 1 0 0;
@@ -150,25 +153,27 @@
   --warning:               0.82 0.14 80;
   --warning-foreground:    0.15 0.04 75;
 
-  --border:                1 0 0 / 12%;
-  --input:                 1 0 0 / 15%;
-  --ring:                  0.72 0.157 33.2;
+  --border:                1 0.015 250 / 14%;
+  --input:                 1 0.015 250 / 16%;
+  --ring:                  0.67 0.20 243;
 
-  --chart-1: 0.72 0.157 33.2;
-  --chart-2: 0.72 0.14 145;
-  --chart-3: 0.82 0.14 80;
-  --chart-4: 0.704 0.191 22.216;
-  --chart-5: 0.75 0.1 310;
+  --chart-1: 0.67 0.20 243;
+  --chart-2: 0.72 0.18 340;
+  --chart-3: 0.72 0.14 145;
+  --chart-4: 0.82 0.14 80;
+  --chart-5: 0.704 0.191 22.216;
 
-  /* Sidebar — ciemniejszy w dark mode */
-  --sidebar:                    0.12 0 0;
-  --sidebar-foreground:         0.88 0 0;
-  --sidebar-primary:            0.72 0.157 33.2;
-  --sidebar-primary-foreground: 0.10 0 0; /* ciemny tekst na jasnym coral — kontrast 7.5:1 */
-  --sidebar-accent:             0.20 0 0;
-  --sidebar-accent-foreground:  0.95 0 0;
-  --sidebar-border:             1 0 0 / 8%;
-  --sidebar-ring:               0.72 0.157 33.2;
+  /* Sidebar — głębszy indigo w dark mode */
+  --sidebar-from:               0.17 0.14 250;
+  --sidebar-to:                 0.10 0.08 246;
+  --sidebar:                    0.13 0.11 248;
+  --sidebar-foreground:         0.95 0 0;
+  --sidebar-primary:            0.67 0.20 243;
+  --sidebar-primary-foreground: 1 0 0;
+  --sidebar-accent:             1 0 0 / 9%;
+  --sidebar-accent-foreground:  1 0 0;
+  --sidebar-border:             1 0 0 / 10%;
+  --sidebar-ring:               0.67 0.20 243;
 }
 
 @layer base {
@@ -176,7 +181,23 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
+    /* Warm violet-rose-gold mesh — Revolut-inspired premium gradient */
+    background-color: oklch(var(--background));
+    background-image:
+      radial-gradient(ellipse 75% 65% at -5% -5%,   oklch(0.72 0.18 295 / 55%) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 105% -5%,  oklch(0.76 0.16 350 / 45%) 0%, transparent 55%),
+      radial-gradient(ellipse 65% 55% at 105% 105%, oklch(0.82 0.13 60  / 40%) 0%, transparent 60%),
+      radial-gradient(ellipse 45% 40% at -5%  105%, oklch(0.75 0.12 220 / 30%) 0%, transparent 55%);
+    background-attachment: fixed;
+  }
+  .dark body {
+    background-color: oklch(var(--background));
+    background-image:
+      radial-gradient(ellipse 70% 60% at -5% -5%,   oklch(0.22 0.14 260 / 80%) 0%, transparent 60%),
+      radial-gradient(ellipse 55% 45% at 105% -5%,  oklch(0.20 0.10 280 / 55%) 0%, transparent 55%),
+      radial-gradient(ellipse 60% 50% at 105% 105%, oklch(0.18 0.08 230 / 50%) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 35% at 50% 105%,  oklch(0.24 0.12 245 / 40%) 0%, transparent 55%);
   }
   html {
     @apply font-sans;
@@ -220,4 +241,35 @@
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--color-border) transparent;
+}
+
+/* ─── Glassmorphism utilities ────────────────────────────────────────────────
+   Stosuj na kartach stat, header sekcji, panelach overlay.
+   Wymaga translucent tła rodzica (body gradient spełnia ten warunek).
+   ──────────────────────────────────────────────────────────────────────────── */
+.glass {
+  background: rgb(255 255 255 / 0.72);
+  backdrop-filter: blur(14px) saturate(1.6);
+  -webkit-backdrop-filter: blur(14px) saturate(1.6);
+  border: 1px solid rgb(255 255 255 / 0.55);
+  box-shadow: 0 2px 16px rgb(0 0 0 / 0.06), inset 0 1px 0 rgb(255 255 255 / 0.8);
+}
+.dark .glass {
+  background: rgb(255 255 255 / 0.06);
+  border: 1px solid rgb(255 255 255 / 0.10);
+  box-shadow: 0 2px 16px rgb(0 0 0 / 0.30), inset 0 1px 0 rgb(255 255 255 / 0.06);
+}
+
+/* Glass — wariant primary (niebieskie akcenty dla wyróżnionych kart) */
+.glass-primary {
+  background: rgb(42 99 224 / 0.08);
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  border: 1px solid rgb(42 99 224 / 0.20);
+  box-shadow: 0 2px 20px rgb(42 99 224 / 0.10), inset 0 1px 0 rgb(255 255 255 / 0.6);
+}
+.dark .glass-primary {
+  background: rgb(42 99 224 / 0.14);
+  border: 1px solid rgb(42 99 224 / 0.25);
+  box-shadow: 0 2px 20px rgb(42 99 224 / 0.18), inset 0 1px 0 rgb(255 255 255 / 0.05);
 }

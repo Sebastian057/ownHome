@@ -17,16 +17,21 @@ Generuje `modules/<name>/module.ui.tsx`. Komponenty są **stateless/dumb** —
 
 ### Paleta kolorów
 
-OwnHome używa **warm coral (#DF664D)** jako primary. Tylko semantic tokens — nigdy raw Tailwind kolory.
+OwnHome używa **fintech blue (~#2549D9)** jako primary. Tylko semantic tokens — nigdy raw Tailwind kolory.
 
 **Kluczowe wartości (globals.css, oklch):**
-- Primary: `#DF664D` → oklch(0.653 0.157 33.2)
-- Background: `#E7E7E7` → oklch(0.928 0 0)
-- Sidebar: gradient `#717171→#3E3E3E` (top→bottom, na komponencie inline style)
-- Grays: `#E8E8E8`, `#ECECEC` (neutralne, hue 0)
-- Radius: `0.5rem` (8px — fintech feel)
+- Primary: `#2549D9` → oklch(0.52 0.22 264) — WCAG AA 7.8:1 z białym
+- Background: subtelny blue-tint `oklch(0.93 0.005 256)` + radial gradient mesh
+- Sidebar: gradient `#717171→#3E3E3E` (top→bottom, na komponencie inline style, BEZ zmian)
+- Grays: neutralne, hue 0
+- Radius: `0.5rem` (8px)
 
-**Dark mode:** Automatyczny przez `.dark {}` w globals.css. Primary jaśniejszy w dark mode.
+**Glassmorphism:**
+- Karty używają `bg-card/85 backdrop-blur-sm` (automatycznie przez `<Card>`)
+- Dla wyróżnionych elementów: klasa `glass` lub `glass-primary` z globals.css
+- NIE dodawaj własnych `backdrop-filter` — używaj gotowych klas
+
+**Dark mode:** Automatyczny przez `.dark {}` w globals.css. Primary jaśniejszy w dark mode (`oklch(0.68 0.19 264)`).
 
 | Zastosowanie | Token | Przykład klasy |
 |---|---|---|

@@ -47,7 +47,7 @@ export const createInsuranceSchema = z.object({
   currency: z.string().length(3).default('PLN'),
   startDate: z.coerce.date(),
   endDate: z.coerce.date(),
-  notes: z.string().trim().max(2000).optional(),
+  notes: z.string().trim().max(2000).nullish(),
   createTransaction: createTransactionPayloadSchema.optional(),
 })
 
@@ -65,7 +65,7 @@ export const createInspectionSchema = z.object({
   result: z.enum(['passed', 'passed_with_defects', 'failed']),
   cost: z.number().positive().optional(),
   currency: z.string().length(3).default('PLN'),
-  notes: z.string().trim().max(2000).optional(),
+  notes: z.string().trim().max(2000).nullish(),
   createTransaction: createTransactionPayloadSchema.optional(),
 })
 
@@ -81,7 +81,7 @@ export const createServiceVisitSchema = z.object({
   mileageAtService: z.number().int().min(0).optional(),
   totalCost: z.number().positive().optional(),
   currency: z.string().length(3).default('PLN'),
-  notes: z.string().trim().max(5000).optional(),
+  notes: z.string().trim().max(5000).nullish(),
   createTransaction: createTransactionPayloadSchema.optional(),
 })
 
@@ -96,8 +96,10 @@ export const updateMaintenanceItemSchema = z.object({
   lastServiceMileage: z.number().int().min(0).optional(),
   nextServiceDate: z.coerce.date().optional(),
   nextServiceMileage: z.number().int().min(0).optional(),
-  notes: z.string().trim().max(2000).optional(),
+  notes: z.string().trim().max(2000).nullish(),
 })
+
+// ─── AI suggestions ───────────────────────────────────────────────────────────
 
 export const applyAiSuggestionsSchema = z.object({
   suggestions: z
@@ -143,7 +145,7 @@ export const createMaintenanceLogSchema = z.object({
   mileage: z.number().int().nonnegative().optional(),
   cost: z.number().positive().optional(),
   currency: z.string().length(3).default('PLN'),
-  notes: z.string().trim().max(2000).optional(),
+  notes: z.string().trim().max(2000).nullish(),
 })
 
 export const updateMaintenanceLogSchema = createMaintenanceLogSchema.partial()

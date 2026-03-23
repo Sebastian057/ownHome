@@ -283,7 +283,7 @@ export function AppSidebar() {
         "flex shrink-0 flex-col text-sidebar-foreground rounded-xl overflow-hidden transition-all duration-200 ease-in-out",
         collapsed ? "w-[60px]" : "w-56"
       )}
-      style={{ background: "linear-gradient(to bottom, oklch(0.44 0 0), oklch(0.28 0 0))" }}
+      style={{ background: "linear-gradient(160deg, oklch(var(--sidebar-from)), oklch(var(--sidebar-to)))" }}
     >
       {/* Header */}
       <div className={cn(

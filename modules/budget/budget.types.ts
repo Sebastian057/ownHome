@@ -170,3 +170,16 @@ export interface MonthSummary {
   balance: string
   byCategory: CategorySummaryItem[]
 }
+
+// ─── UI-only types ────────────────────────────────────────────────────────────
+
+/** Display labels keyed by TransactionSource Prisma enum values */
+export const SOURCE_LABELS = {
+  MANUAL: null,
+  SUBSCRIPTION: 'Sub',
+  RECURRING: 'Cykl',
+} as const
+
+export type TransactionSortField = 'date' | 'amount' | 'title'
+export type SortDir = 'asc' | 'desc'
+export type TransactionPageSize = 20 | 50 | 100 | 200

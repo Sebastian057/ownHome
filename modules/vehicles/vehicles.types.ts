@@ -210,3 +210,40 @@ export interface VinLookupResult {
   transmissionType: string | null
   bodyType: string | null
 }
+
+// ─── UI form state types ──────────────────────────────────────────────────────
+
+/** Internal form state for VehicleFormDialog — all fields as strings for input binding */
+export interface VehicleFormState {
+  name: string
+  licensePlate: string
+  vin: string
+  make: string
+  model: string
+  year: string
+  color: string
+  engineType: string
+  engineCapacity: string
+  fuelType: string
+  transmissionType: string
+  bodyType: string
+  mileage: string
+  registrationExpiry: string
+}
+
+export const EMPTY_VEHICLE_FORM: VehicleFormState = {
+  name: '',
+  licensePlate: '',
+  vin: '',
+  make: '',
+  model: '',
+  year: '',
+  color: '',
+  engineType: '',
+  engineCapacity: '',
+  fuelType: '',
+  transmissionType: '',
+  bodyType: '',
+  mileage: '0',
+  registrationExpiry: '',
+}
