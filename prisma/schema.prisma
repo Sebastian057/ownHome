@@ -235,6 +235,232 @@ model Subscription {
   @@map("subscriptions")
 }
 
+// ─── VEHICLES ─────────────────────────────────────────────────────────────────
+
+enum FuelType {
+  petrol
+  diesel
+  lpg
+  electric
+  hybrid
+  hydrogen
+}
+
+enum TransmissionType {
+  manual
+  automatic
+  semi_automatic
+  cvt
+}
+
+
+enum InspectionResult {
+  passed
+  passed_with_defects
+  failed
+}
+
+enum MaintenanceItemType {
+  oil_change
+  timing_belt
+  timing_chain
+  brakes_front
+  brakes_rear
+  brake_fluid
+  gearbox_oil
+  coolant
+  spark_plugs
+  glow_plugs
+  air_filter
+  cabin_filter
+  fuel_filter
+  power_steering_fluid
+  battery
+  tires_summer
+  tires_winter
+  tires_all_season
+  clutch
+  suspension_front
+  suspension_rear
+  other
+}
+
+model Vehicle {
+  id                 String             @id @default(cuid())
+  userId             String             @map("user_id")
+  name               String             @db.VarChar(100)
+  slug               String             @db.VarChar(120)
+  licensePlate       String             @map("license_plate") @db.VarChar(20)
+  photoUrl           String?            @map("photo_url") @db.VarChar(500)
+  vin                String?            @db.VarChar(17)
+  make               String?            @db.VarChar(100)
+  model              String?            @db.VarChar(100)
+  year               Int?
+  color              String?            @db.VarChar(50)
+  engineType         String?            @map("engine_type") @db.VarChar(50)
+  engineCapacity     String?            @map("engine_capacity") @db.VarChar(20)
+  fuelType           FuelType?          @map("fuel_type")
+  transmissionType   TransmissionType?  @map("transmission_type")
+  bodyType           String?            @map("body_type") @db.VarChar(50)
+  mileage            Int                @default(0)
+  registrationExpiry DateTime?          @map("registration_expiry")
+  deletedAt          DateTime?          @map("deleted_at")
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+
+  insurances       VehicleInsurance[]
+  inspections      VehicleInspection[]
+  serviceVisits    VehicleServiceVisit[]
+  maintenanceItems VehicleMaintenanceItem[]
+  maintenanceLogs  VehicleMaintenanceLog[]
+  serviceVisitFiles VehicleServiceVisitFile[]
+
+  @@unique([userId, slug])
+  @@index([userId])
+  @@index([userId, deletedAt])
+  @@map("vehicles")
+}
+
+model VehicleInsurance {
+  id            String        @id @default(cuid())
+  vehicleId     String        @map("vehicle_id")
+  userId        String        @map("user_id")
+  provider      String        @db.VarChar(200)
+  policyNumber  String?       @map("policy_number") @db.VarChar(100)
+  types         String[]      @default([]) @map("types")
+  amount        Decimal       @db.Decimal(10, 2)
+  currency      String        @default("PLN") @db.Char(3)
+  startDate     DateTime      @map("start_date")
+  endDate       DateTime      @map("end_date")
+  transactionId String?       @map("transaction_id")
+  notes         String?       @db.VarChar(2000)
+  deletedAt     DateTime?     @map("deleted_at")
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+
+  @@index([vehicleId])
+  @@index([userId, endDate])
+  @@index([userId, deletedAt])
+  @@map("vehicle_insurances")
+}
+
+model VehicleInspection {
+  id               String           @id @default(cuid())
+  vehicleId        String           @map("vehicle_id")
+  userId           String           @map("user_id")
+  date             DateTime
+  nextDate         DateTime?        @map("next_date")
+  mileageAtService Int?             @map("mileage_at_service")
+  result           InspectionResult
+  stationName      String?          @map("station_name") @db.VarChar(300)
+  cost             Decimal?         @db.Decimal(10, 2)
+  currency         String           @default("PLN") @db.Char(3)
+  transactionId    String?          @map("transaction_id")
+  notes            String?          @db.VarChar(2000)
+  deletedAt        DateTime?        @map("deleted_at")
+  createdAt        DateTime         @default(now()) @map("created_at")
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+
+  @@index([vehicleId])
+  @@index([userId, nextDate])
+  @@index([userId, deletedAt])
+  @@map("vehicle_inspections")
+}
+
+model VehicleServiceVisit {
+  id               String    @id @default(cuid())
+  vehicleId        String    @map("vehicle_id")
+  userId           String    @map("user_id")
+  date             DateTime
+  shopName         String?   @map("shop_name") @db.VarChar(200)
+  mileageAtService Int?      @map("mileage_at_service")
+  totalCost        Decimal?  @map("total_cost") @db.Decimal(10, 2)
+  currency         String    @default("PLN") @db.Char(3)
+  transactionId    String?   @map("transaction_id")
+  notes            String?   @db.VarChar(5000)
+  aiSuggestions    Json?     @map("ai_suggestions")
+  aiAppliedAt      DateTime? @map("ai_applied_at")
+  deletedAt        DateTime? @map("deleted_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  vehicle            Vehicle                  @relation(fields: [vehicleId], references: [id])
+  maintenanceUpdates VehicleMaintenanceItem[]
+  files              VehicleServiceVisitFile[]
+
+  @@index([vehicleId])
+  @@index([userId, date])
+  @@index([userId, deletedAt])
+  @@map("vehicle_service_visits")
+}
+
+model VehicleMaintenanceItem {
+  id                 String              @id @default(cuid())
+  vehicleId          String              @map("vehicle_id")
+  userId             String              @map("user_id")
+  type               MaintenanceItemType
+  lastServiceDate    DateTime?           @map("last_service_date")
+  lastServiceMileage Int?                @map("last_service_mileage")
+  nextServiceDate    DateTime?           @map("next_service_date")
+  nextServiceMileage Int?                @map("next_service_mileage")
+  notes              String?             @db.VarChar(2000)
+  updatedByVisitId   String?             @map("updated_by_visit_id")
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+
+  vehicle        Vehicle              @relation(fields: [vehicleId], references: [id])
+  updatedByVisit VehicleServiceVisit? @relation(fields: [updatedByVisitId], references: [id])
+
+  @@unique([vehicleId, type])
+  @@index([vehicleId])
+  @@index([userId])
+  @@map("vehicle_maintenance_items")
+}
+
+model VehicleServiceVisitFile {
+  id        String              @id @default(cuid())
+  visitId   String              @map("visit_id")
+  vehicleId String              @map("vehicle_id")
+  userId    String              @map("user_id")
+  fileName  String              @map("file_name") @db.VarChar(500)
+  fileUrl   String              @map("file_url") @db.VarChar(1000)
+  fileType  String              @map("file_type") @db.VarChar(20)
+  mimeType  String              @map("mime_type") @db.VarChar(100)
+  sizeBytes Int                 @map("size_bytes")
+  createdAt DateTime            @default(now()) @map("created_at")
+
+  visit   VehicleServiceVisit @relation(fields: [visitId], references: [id])
+  vehicle Vehicle             @relation(fields: [vehicleId], references: [id])
+
+  @@index([visitId])
+  @@index([userId])
+  @@map("vehicle_service_visit_files")
+}
+
+model VehicleMaintenanceLog {
+  id        String    @id @default(cuid())
+  vehicleId String    @map("vehicle_id")
+  userId    String    @map("user_id")
+  category  String    @db.VarChar(100)
+  label     String?   @db.VarChar(200)
+  date      DateTime  @db.Date
+  mileage   Int?
+  cost      Decimal?  @db.Decimal(10, 2)
+  currency  String    @default("PLN") @db.Char(3)
+  notes     String?   @db.VarChar(2000)
+  deletedAt DateTime? @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+
+  @@index([vehicleId])
+  @@index([userId])
+  @@index([userId, deletedAt])
+  @@map("vehicle_maintenance_logs")
+}
+
 // ─── RECURRING TEMPLATE (płatności cykliczne) ─────────────────────────────────
 
 model RecurringTemplate {

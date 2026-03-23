@@ -53,7 +53,19 @@ export type EventName =
   | 'budget.category.overspent'
   | 'recurring.payment.due'
   | 'recurring.payment.confirmed'
-  | 'subscription.processed';
+  | 'subscription.processed'
+  | 'vehicle.created'
+  | 'vehicle.updated'
+  | 'vehicle.deleted'
+  | 'vehicle.insurance.created'
+  | 'vehicle.insurance.renewed'
+  | 'vehicle.insurance.expiring'
+  | 'vehicle.inspection.created'
+  | 'vehicle.inspection.expiring'
+  | 'vehicle.registration.expiring'
+  | 'vehicle.service_visit.created'
+  | 'vehicle.maintenance.due'
+  | 'vehicle.maintenance.ai_suggestions_ready';
 
 // ─── App Error ────────────────────────────────────────────────────────────────
 
