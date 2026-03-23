@@ -65,7 +65,20 @@
       "Bash(mkdir -p \"D:\\\\Private Projects\\\\ownHome\\\\app\\\\api\\\\budget\\\\periods\\\\[id]\\\\reset\")",
       "Bash(mkdir -p \"D:\\\\Private Projects\\\\ownHome\\\\app\\\\api\\\\budget\\\\periods\\\\[id]\\\\replace-template\")",
       "Bash(find 'D:\\\\Private Projects\\\\ownHome' -name *.md -path */docs/*)",
-      "Bash(find 'D:\\\\Private Projects\\\\ownHome' -name *.md -path */skills/*)"
+      "Bash(find 'D:\\\\Private Projects\\\\ownHome' -name *.md -path */skills/*)",
+      "Bash(npx shadcn@latest add table alert form alert-dialog dropdown-menu scroll-area empty spinner --yes)",
+      "Bash(npx shadcn@latest add table alert form alert-dialog dropdown-menu scroll-area empty spinner)",
+      "Bash(npx shadcn@latest add form --overwrite)",
+      "Bash(npx shadcn@latest add form)",
+      "Bash(mkdir -p \"D:/Private Projects/ownHome/app/api/vehicles/[id]/insurance/[iid]/renew\")",
+      "Bash(mkdir -p \"D:/Private Projects/ownHome/app/api/vehicles/[id]/service-visits/[vid]/files/[fid]\")",
+      "Bash(mkdir -p \"D:/Private Projects/ownHome/app/api/vehicles/[id]/maintenance/log/[lid]\")",
+      "Bash(node -e \"require\\(''fslightbox-react''\\); console.log\\(''ok''\\)\")",
+      "Bash(Rename-Item \"D:\\\\Private Projects\\\\ownHome\\\\app\\\\api\\\\vehicles\\\\[id]\" \"D:\\\\Private Projects\\\\ownHome\\\\app\\\\api\\\\vehicles\\\\[slug]\")",
+      "Bash(ls \"D:/Private Projects/ownHome/app/\\(dashboard\\)/vehicles/\")",
+      "Bash(ls 'D:\\\\Private Projects\\\\ownHome\\\\app\\\\\\(dashboard\\)\\\\vehicles')",
+      "Bash(rm -rf 'D:\\\\Private Projects\\\\ownHome\\\\app\\\\api\\\\vehicles\\\\[id]')",
+      "Bash(rm -rf 'D:\\\\Private Projects\\\\ownHome\\\\app\\\\\\(dashboard\\)\\\\vehicles\\\\[id]')"
     ],
     "deny": [
       "mcp__Claude_Preview__preview_start",
