@@ -39,10 +39,11 @@ type NavItemDef = {
 const navItems: NavItemDef[] = [
   { label: "Dashboard", href: "/",        icon: LayoutDashboard },
   {
-    label: "Budżet",    href: "/budget",   icon: Wallet,
+    label: "Budżet", href: "/budget", icon: Wallet,
     children: [
-      { label: "Subskrypcje",  href: "/subscriptions", icon: CreditCard },
-      { label: "Zobowiązania", href: "/obligations",   icon: TrendingUp },
+      { label: "Przegląd",     href: "/budget",        icon: Wallet      },
+      { label: "Subskrypcje",  href: "/subscriptions", icon: CreditCard  },
+      { label: "Zobowiązania", href: "/obligations",   icon: TrendingUp  },
     ],
   },
   { label: "Pojazdy",   href: "/vehicles", icon: Car },
@@ -78,7 +79,6 @@ function NavLink({
     <>
       <Icon className="h-[18px] w-[18px] shrink-0" />
       {!collapsed && <span className="text-sm">{label}</span>}
-      {/* Badge powiadomień */}
       {badge !== undefined && badge > 0 && (
         <span className={cn(
           "flex h-4 min-w-4 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground px-1",
@@ -112,24 +112,38 @@ function NavGroup({
   item,
   pathname,
   collapsed,
+  onExpand,
 }: {
   item: NavItemDef & { children: NavChild[] };
   pathname: string;
   collapsed: boolean;
+  onExpand: () => void;
 }) {
   const isAnyChildActive = item.children.some((c) => pathname === c.href);
   const isParentActive = pathname === item.href;
   const [open, setOpen] = useState(isAnyChildActive || isParentActive);
 
+  // Collapsed mode — just an icon button that expands the sidebar + opens group
   if (collapsed) {
+    const isActive = isParentActive || isAnyChildActive;
+    const Icon = item.icon;
     return (
-      <NavLink
-        href={item.href}
-        icon={item.icon}
-        label={item.label}
-        isActive={isParentActive || isAnyChildActive}
-        collapsed={true}
-      />
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            onClick={() => { onExpand(); setOpen(true); }}
+            className={cn(
+              "flex h-10 w-10 items-center justify-center rounded-lg transition-colors duration-150",
+              isActive
+                ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            )}
+          >
+            <Icon className="h-[18px] w-[18px] shrink-0" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="right" sideOffset={8}>{item.label}</TooltipContent>
+      </Tooltip>
     );
   }
 
@@ -137,7 +151,6 @@ function NavGroup({
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      {/* Trigger row — cały wiersz jest klikalny (toggle), ikonka i label to Link */}
       <CollapsibleTrigger asChild>
         <button
           className={cn(
@@ -148,13 +161,7 @@ function NavGroup({
           )}
         >
           <Icon className="h-[18px] w-[18px] shrink-0" />
-          <Link
-            href={item.href}
-            onClick={(e) => e.stopPropagation()}
-            className="flex-1 text-left text-sm"
-          >
-            {item.label}
-          </Link>
+          <span className="flex-1 text-left text-sm">{item.label}</span>
           <ChevronDown
             className={cn(
               "h-3.5 w-3.5 shrink-0 transition-transform duration-200",
@@ -165,7 +172,7 @@ function NavGroup({
       </CollapsibleTrigger>
 
       <CollapsibleContent className="collapsible-content">
-        <div className="ml-[22px] mt-0.5 flex flex-col gap-0.5 border-l border-sidebar-border/40 pb-0.5 pl-3">
+        <div className="ml-3 mt-0.5 flex flex-col gap-0.5 border-l border-sidebar-border/40 pb-0.5 pl-2">
           {item.children.map((child) => (
             <NavLink
               key={child.href}
@@ -268,7 +275,6 @@ export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
 
-  // Powiadomienia — w przyszłości pobierane z /api/notifications
   const notificationCount = 0;
 
   return (
@@ -319,6 +325,7 @@ export function AppSidebar() {
               item={item as NavItemDef & { children: NavChild[] }}
               pathname={pathname}
               collapsed={collapsed}
+              onExpand={() => setCollapsed(false)}
             />
           ) : (
             <NavLink
@@ -337,7 +344,6 @@ export function AppSidebar() {
       <div className={cn("flex flex-col gap-0.5 pb-4", collapsed ? "px-[10px]" : "px-2")}>
         <div className="mb-2 h-px bg-sidebar-border" />
 
-        {/* Powiadomienia */}
         <NavLink
           href="/notifications"
           icon={Bell}
@@ -347,7 +353,6 @@ export function AppSidebar() {
           badge={notificationCount}
         />
 
-        {/* Ustawienia */}
         <NavLink
           href="/settings"
           icon={Settings}
@@ -358,7 +363,6 @@ export function AppSidebar() {
 
         <div className="my-2 h-px bg-sidebar-border" />
 
-        {/* User card */}
         <UserCard collapsed={collapsed} />
       </div>
     </aside>

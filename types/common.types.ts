@@ -42,8 +42,18 @@ export type EventName =
   | 'vehicle.service.created'
   | 'subscription.created'
   | 'subscription.deleted'
+  | 'subscription.billing.due'
+  | 'subscription.trial.ending'
   | 'obligation.due_date.approaching'
-  | 'calendar.event.reminder';
+  | 'calendar.event.reminder'
+  | 'budget.period.created'
+  | 'budget.period.reset'
+  | 'budget.period.replaced_with_template'
+  | 'budget.transaction.created'
+  | 'budget.category.overspent'
+  | 'recurring.payment.due'
+  | 'recurring.payment.confirmed'
+  | 'subscription.processed';
 
 // ─── App Error ────────────────────────────────────────────────────────────────
 

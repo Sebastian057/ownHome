@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useTheme } from "next-themes";
+import useSWR from "swr";
 import { useUser } from "@/components/user-provider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -23,6 +24,8 @@ import { User, Mail, Phone, Lock, Sun, Moon, Shield, Trash2, UserPlus, Camera, U
 import type { ApiResponse } from "@/types/common.types";
 import type { UserProfile } from "@/modules/profile/module.types";
 import type { AdminUserView } from "@/modules/admin/module.types";
+import type { BudgetTemplateView, BudgetCategoryView } from "@/modules/budget/budget.types";
+import { BudgetTemplateEditor, CategoryManagerSection } from "@/modules/budget/budget.ui";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -533,6 +536,58 @@ function UsersTab() {
   );
 }
 
+// ─── Tab: Budżet ──────────────────────────────────────────────────────────────
+
+function BudgetTab() {
+  const {
+    data: templateRes,
+    isLoading: templateLoading,
+    mutate: mutateTemplate,
+  } = useSWR<ApiResponse<BudgetTemplateView>>("/api/budget/template");
+
+  const {
+    data: categoriesRes,
+    isLoading: categoriesLoading,
+    mutate: mutateCategories,
+  } = useSWR<ApiResponse<BudgetCategoryView[]>>("/api/budget/categories");
+
+  const template = templateRes?.data ?? null;
+  const categories = categoriesRes?.data ?? [];
+
+  return (
+    <Tabs defaultValue="template" className="w-full">
+      <TabsList className="mb-4">
+        <TabsTrigger value="template">Szablon budżetu</TabsTrigger>
+        <TabsTrigger value="categories">Kategorie</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="template">
+        {templateLoading ? (
+          <Skeleton className="h-96 w-full rounded-xl" />
+        ) : template ? (
+          <BudgetTemplateEditor
+            template={template}
+            onRefresh={() => mutateTemplate()}
+          />
+        ) : (
+          <p className="text-sm text-muted-foreground">Brak szablonu.</p>
+        )}
+      </TabsContent>
+
+      <TabsContent value="categories">
+        {categoriesLoading ? (
+          <Skeleton className="h-64 w-full rounded-xl" />
+        ) : (
+          <CategoryManagerSection
+            categories={categories}
+            onRefresh={() => mutateCategories()}
+          />
+        )}
+      </TabsContent>
+    </Tabs>
+  );
+}
+
 // ─── Settings Page ────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
@@ -550,6 +605,7 @@ export default function SettingsPage() {
         <TabsList>
           <TabsTrigger value="profile">Profil</TabsTrigger>
           <TabsTrigger value="preferences">Preferencje</TabsTrigger>
+          <TabsTrigger value="budget">Budżet</TabsTrigger>
           {isAdmin && <TabsTrigger value="users">Użytkownicy</TabsTrigger>}
         </TabsList>
 
@@ -559,6 +615,10 @@ export default function SettingsPage() {
 
         <TabsContent value="preferences" className="mt-6">
           <PreferencesTab />
+        </TabsContent>
+
+        <TabsContent value="budget" className="mt-6">
+          <BudgetTab />
         </TabsContent>
 
         {isAdmin && (

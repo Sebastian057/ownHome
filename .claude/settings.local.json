@@ -53,7 +53,19 @@
       "Bash(cmd /c \"netstat -ano | findstr :3000\")",
       "Bash(cmd /c \"tasklist | findstr node\")",
       "Bash(ls -la \"D:\\\\Private Projects\\\\ownHome/app/\\(dashboard\\)/\")",
-      "Bash(grep -r \"Collapsible\\\\|Accordion\" 'D:/Private Projects/ownHome/node_modules/radix-ui/src' --include=*.ts -l)"
+      "Bash(grep -r \"Collapsible\\\\|Accordion\" 'D:/Private Projects/ownHome/node_modules/radix-ui/src' --include=*.ts -l)",
+      "Bash(npx prisma:*)",
+      "Bash(mkdir -p \"D:\\\\Private Projects\\\\ownHome\\\\app\\\\api\\\\budget\\\\periods\\\\[id]\\\\incomes\\\\[incomeId]\")",
+      "Bash(mkdir -p \"D:\\\\Private Projects\\\\ownHome\\\\app\\\\api\\\\budget\\\\periods\\\\[id]\\\\plans\")",
+      "Bash(mkdir -p \"D:\\\\Private Projects\\\\ownHome\\\\app\\\\api\\\\budget\\\\periods\\\\[id]\\\\transactions\\\\[txId]\")",
+      "Bash(mkdir -p \"D:\\\\Private Projects\\\\ownHome\\\\app\\\\api\\\\budget\\\\periods\\\\[id]\\\\summary\")",
+      "Bash(mkdir -p \"D:\\\\Private Projects\\\\ownHome\\\\app\\\\api\\\\recurring\\\\[id]\\\\confirm\")",
+      "Bash(mkdir -p \"D:\\\\Private Projects\\\\ownHome\\\\app\\\\api\\\\recurring\\\\[id]\\\\skip\")",
+      "Bash(npx shadcn@latest add select label textarea --yes)",
+      "Bash(mkdir -p \"D:\\\\Private Projects\\\\ownHome\\\\app\\\\api\\\\budget\\\\periods\\\\[id]\\\\reset\")",
+      "Bash(mkdir -p \"D:\\\\Private Projects\\\\ownHome\\\\app\\\\api\\\\budget\\\\periods\\\\[id]\\\\replace-template\")",
+      "Bash(find 'D:\\\\Private Projects\\\\ownHome' -name *.md -path */docs/*)",
+      "Bash(find 'D:\\\\Private Projects\\\\ownHome' -name *.md -path */skills/*)"
     ],
     "deny": [
       "mcp__Claude_Preview__preview_start",

@@ -40,3 +40,246 @@ model ScheduledEvent {
   @@index([userId, scheduledAt, processedAt])
   @@map("scheduled_events")
 }
+
+// ─── ENUMS ────────────────────────────────────────────────────────────────────
+
+enum TransactionSource {
+  MANUAL
+  SUBSCRIPTION
+  RECURRING
+}
+
+enum BillingCycle {
+  WEEKLY
+  MONTHLY
+  BIMONTHLY   // co 2 miesiące (np. prąd, gaz)
+  QUARTERLY
+  YEARLY
+}
+
+enum RecurringStatus {
+  PENDING
+  CONFIRMED
+  SKIPPED
+}
+
+// ─── BUDGET CATEGORIES (globalne — bez userId) ────────────────────────────────
+
+model BudgetCategory {
+  id        String   @id @default(cuid())
+  slug      String   @unique @db.VarChar(50)
+  label     String   @db.VarChar(100)
+  color     String   @default("#6b7280") @db.VarChar(7)
+  isSystem  Boolean  @default(true)
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+  @@map("budget_categories")
+}
+
+// ─── BUDGET TEMPLATE ─────────────────────────────────────────────────────────
+
+model BudgetTemplate {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  currency  String   @default("PLN")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  incomes  BudgetTemplateIncome[]
+  expenses BudgetTemplateExpense[]
+
+  @@index([userId])
+  @@map("budget_templates")
+}
+
+model BudgetTemplateIncome {
+  id         String         @id @default(cuid())
+  templateId String
+  template   BudgetTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  userId     String
+  title      String         @db.VarChar(200)
+  amount     Decimal        @db.Decimal(12, 2)
+  sortOrder  Int            @default(0)
+  createdAt  DateTime       @default(now())
+
+  @@index([templateId])
+  @@index([userId])
+  @@map("budget_template_incomes")
+}
+
+model BudgetTemplateExpense {
+  id         String         @id @default(cuid())
+  templateId String
+  template   BudgetTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  userId     String
+  category   String         @db.VarChar(50)
+  amount     Decimal        @db.Decimal(12, 2)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  @@unique([templateId, category])
+  @@index([templateId])
+  @@index([userId])
+  @@map("budget_template_expenses")
+}
+
+// ─── BUDGET PERIOD (miesiąc) ──────────────────────────────────────────────────
+
+model BudgetPeriod {
+  id              String    @id @default(cuid())
+  userId          String
+  year            Int
+  month           Int
+  currency        String    @default("PLN")
+  carryOverAmount Decimal   @default(0) @db.Decimal(12, 2)
+  closedAt        DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  incomes       BudgetIncome[]
+  categoryPlans BudgetCategoryPlan[]
+  transactions  Transaction[]
+
+  @@unique([userId, year, month])
+  @@index([userId])
+  @@index([userId, year, month])
+  @@map("budget_periods")
+}
+
+model BudgetIncome {
+  id        String       @id @default(cuid())
+  periodId  String
+  period    BudgetPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  userId    String
+  title     String       @db.VarChar(200)
+  planned   Decimal      @db.Decimal(12, 2)
+  actual    Decimal?     @db.Decimal(12, 2)
+  sortOrder Int          @default(0)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([periodId])
+  @@index([userId])
+  @@map("budget_incomes")
+}
+
+model BudgetCategoryPlan {
+  id        String       @id @default(cuid())
+  periodId  String
+  period    BudgetPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  userId    String
+  category  String       @db.VarChar(50)
+  planned   Decimal      @db.Decimal(12, 2)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@unique([periodId, category])
+  @@index([periodId])
+  @@index([userId])
+  @@map("budget_category_plans")
+}
+
+// ─── TRANSACTION ─────────────────────────────────────────────────────────────
+
+model Transaction {
+  id        String            @id @default(cuid())
+  periodId  String
+  period    BudgetPeriod      @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  userId    String
+  date      DateTime          @db.Date
+  title     String            @db.VarChar(300)
+  amount    Decimal           @db.Decimal(12, 2)
+  category  String            @db.VarChar(50)
+  source    TransactionSource @default(MANUAL)
+  sourceId  String?
+  tags      String[]          @default([])
+  deletedAt DateTime?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@index([periodId])
+  @@index([userId])
+  @@index([userId, date])
+  @@index([userId, deletedAt])
+  @@index([userId, category])
+  @@map("transactions")
+}
+
+// ─── SUBSCRIPTION ────────────────────────────────────────────────────────────
+
+model Subscription {
+  id              String       @id @default(cuid())
+  userId          String
+  name            String       @db.VarChar(200)
+  amount          Decimal      @db.Decimal(12, 2)
+  currency        String       @default("PLN")
+  category        String       @default("rachunki") @db.VarChar(50)
+  billingCycle    BillingCycle
+  billingDay      Int
+  nextBillingDate DateTime     @db.Date
+  isActive        Boolean      @default(true)
+  trialEndsAt     DateTime?    @db.Date
+  notes           String?      @db.VarChar(500)
+  deletedAt       DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([userId, isActive])
+  @@index([userId, nextBillingDate])
+  @@index([userId, deletedAt])
+  @@map("subscriptions")
+}
+
+// ─── RECURRING TEMPLATE (płatności cykliczne) ─────────────────────────────────
+
+model RecurringTemplate {
+  id            String       @id @default(cuid())
+  userId        String
+  name          String       @db.VarChar(200)
+  defaultAmount Decimal      @db.Decimal(12, 2)
+  currency      String       @default("PLN")
+  category      String       @db.VarChar(50)
+  billingCycle  BillingCycle @default(MONTHLY)
+  billingDay    Int
+  isActive      Boolean      @default(true)
+  notes         String?      @db.VarChar(500)
+  deletedAt     DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  payments RecurringPayment[]
+
+  @@index([userId])
+  @@index([userId, isActive])
+  @@index([userId, deletedAt])
+  @@map("recurring_templates")
+}
+
+model RecurringPayment {
+  id            String            @id @default(cuid())
+  templateId    String
+  template      RecurringTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  userId        String
+  year          Int               // rok płatności (np. 2026)
+  month         Int               // miesiąc płatności (1-12)
+  periodId      String?           // opcjonalne — powiązanie z BudgetPeriod (wypełniane przy potwierdzeniu)
+  dueDate       DateTime          @db.Date
+  amount        Decimal           @db.Decimal(12, 2)
+  status        RecurringStatus   @default(PENDING)
+  confirmedAt   DateTime?
+  transactionId String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@unique([templateId, year, month])   // jedna płatność per szablon per miesiąc
+  @@index([templateId])
+  @@index([userId])
+  @@index([userId, status])
+  @@index([userId, year, month])
+  @@map("recurring_payments")
+}
