@@ -333,7 +333,7 @@ export function AppSidebar() {
               href={item.href}
               icon={item.icon}
               label={item.label}
-              isActive={pathname === item.href}
+              isActive={item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)}
               collapsed={collapsed}
             />
           )
