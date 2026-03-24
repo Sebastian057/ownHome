@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import useSWR from "swr";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -67,7 +68,7 @@ export default function BudgetPage() {
       setShowResetDialog(false);
       await mutatePeriod();
     } catch {
-      // TODO: toast error
+      toast.error("Nie udało się zresetować okresu budżetowego");
     } finally {
       setActionLoading(false);
     }
@@ -84,7 +85,7 @@ export default function BudgetPage() {
       setShowReplaceDialog(false);
       await mutatePeriod();
     } catch {
-      // TODO: toast error
+      toast.error("Nie udało się zastąpić okresu szablonem");
     } finally {
       setActionLoading(false);
     }

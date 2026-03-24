@@ -17,8 +17,6 @@ import type {
   updateBalanceSchema,
 } from './budget.schema'
 
-// BudgetCategory jest teraz globalną tabelą (nie enum) — slugi w postaci string
-export type BudgetCategory = string
 export type { BillingCycle, TransactionSource, RecurringStatus }
 
 // DTOs — inferowane z Zod

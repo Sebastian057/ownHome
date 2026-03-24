@@ -37,7 +37,7 @@ export async function POST(req: Request) {
   const ext = rawExt.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 10) || 'jpg';
   const path = `${session.userId}/avatar.${ext}`;
 
-  const supabase = await createSupabaseAdminClient();
+  const supabase = createSupabaseAdminClient();
 
   const bytes = await file.arrayBuffer();
   const { error: uploadError } = await supabase.storage

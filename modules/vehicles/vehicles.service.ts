@@ -475,7 +475,7 @@ export const vehicleService = {
     if (!vehicle) throw new AppError('NOT_FOUND')
 
     const { createSupabaseAdminClient } = await import('@/lib/supabase-server')
-    const supabase = await createSupabaseAdminClient()
+    const supabase = createSupabaseAdminClient()
 
     const ext = file.name.split('.').pop() ?? 'jpg'
     const path = `${userId}/${vehicleId}/${Date.now()}.${ext}`

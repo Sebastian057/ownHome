@@ -1,5 +1,6 @@
 import { AppError } from '@/types/common.types'
 import { eventEmitter } from '@/lib/event-emitter'
+import { advanceBillingDate } from '@/lib/billing'
 import { budgetRepository } from './budget.repository'
 import {
   type CreatePeriodDto,
@@ -317,7 +318,7 @@ export const budgetService = {
         }))
       )
       await Promise.all(dueSubscriptions.map(sub => {
-        const next = calculateNextBillingDate(sub.nextBillingDate, sub.billingCycle)
+        const next = advanceBillingDate(sub.nextBillingDate, sub.billingCycle)
         return subscriptionRepository.updateNextBillingDate(sub.id, userId, next)
       }))
     }
@@ -566,7 +567,8 @@ export const budgetService = {
         tags: payload.tags ?? [],
       })
       return tx.id
-    } catch {
+    } catch (err) {
+      console.error('[recordExternalTransaction]', err)
       return null
     }
   },
@@ -747,20 +749,8 @@ async function bookDueSubscriptionsForPeriod(
     }))
   )
   await Promise.all(toBook.map(sub => {
-    const next = calculateNextBillingDate(sub.nextBillingDate, sub.billingCycle)
+    const next = advanceBillingDate(sub.nextBillingDate, sub.billingCycle)
     return subscriptionRepository.updateNextBillingDate(sub.id, userId, next)
   }))
 }
 
-// ─── Helper: calculateNextBillingDate ────────────────────────────────────────
-
-function calculateNextBillingDate(current: Date, cycle: string): Date {
-  const next = new Date(current)
-  switch (cycle) {
-    case 'WEEKLY':    next.setDate(next.getDate() + 7); break
-    case 'MONTHLY':   next.setMonth(next.getMonth() + 1); break
-    case 'QUARTERLY': next.setMonth(next.getMonth() + 3); break
-    case 'YEARLY':    next.setFullYear(next.getFullYear() + 1); break
-  }
-  return next
-}
