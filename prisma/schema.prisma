@@ -136,6 +136,8 @@ model BudgetPeriod {
   month           Int
   currency        String    @default("PLN")
   carryOverAmount Decimal   @default(0) @db.Decimal(12, 2)
+  openingBalance  Decimal?  @map("opening_balance") @db.Decimal(12, 2)
+  closingBalance  Decimal?  @map("closing_balance") @db.Decimal(12, 2)
   closedAt        DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt

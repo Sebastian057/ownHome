@@ -117,7 +117,7 @@ export const budgetRepository = {
     return prisma.budgetCategoryPlan.findFirst({ where: { periodId, userId, category } })
   },
 
-  async createPeriod(data: Pick<CreatePeriodDto, 'year' | 'month' | 'carryOverAmount'> & { userId: string }) {
+  async createPeriod(data: Pick<CreatePeriodDto, 'year' | 'month' | 'carryOverAmount'> & { userId: string; openingBalance?: number }) {
     return prisma.budgetPeriod.create({ data })
   },
 
@@ -133,6 +133,13 @@ export const budgetRepository = {
         },
       },
     })
+  },
+
+  async updatePeriodBalance(id: string, userId: string, data: { openingBalance?: number | null; closingBalance?: number | null }) {
+    const update: Record<string, unknown> = {}
+    if (data.openingBalance !== undefined) update.openingBalance = data.openingBalance
+    if (data.closingBalance !== undefined) update.closingBalance = data.closingBalance
+    return prisma.budgetPeriod.updateMany({ where: { id, userId }, data: update })
   },
 
   async deletePeriod(id: string, userId: string) {
@@ -296,6 +303,15 @@ export const budgetRepository = {
       where: { periodId, sourceId, source, deletedAt: null },
       select: { id: true },
     })
+  },
+
+  /** Zwraca Set sourceId subskrypcji już zaksięgowanych w danym okresie (do dedup przy lazy booking) */
+  async getBookedSubscriptionSourceIds(periodId: string): Promise<Set<string>> {
+    const rows = await prisma.transaction.findMany({
+      where: { periodId, source: 'SUBSCRIPTION', deletedAt: null, sourceId: { not: null } },
+      select: { sourceId: true },
+    })
+    return new Set(rows.map(r => r.sourceId!))
   },
 
   async sumTransactionsByCategory(periodId: string, userId: string, category: string) {

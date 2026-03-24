@@ -1,13 +1,20 @@
 "use client";
 
+import { useState } from "react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   TrendingUp,
   TrendingDown,
-  Wallet,
   ArrowUpRight,
   PiggyBank,
+  Landmark,
+  PencilIcon,
+  Check,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -21,6 +28,7 @@ import {
 import {
   type BudgetSummary,
   type CategorySummaryItem,
+  type BudgetPeriodDetail,
 } from "./budget.types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -71,23 +79,31 @@ export function SummaryCards({ summary }: { summary: BudgetSummary }) {
 // ─── ExtendedSummaryCards ─────────────────────────────────────────────────────
 
 export function ExtendedSummaryCards({ summary }: { summary: BudgetSummary }) {
-  const balance = Number(summary.balance);
+  // Saldo konta: otwarcie + faktyczne przychody − faktyczne wydatki (gdy otwarcie ustawione)
+  // Fallback: plan budżetu − faktyczne wydatki
+  const hasRealBalance = summary.expectedBalance !== null;
+  const balanceValue = hasRealBalance
+    ? Number(summary.expectedBalance)
+    : Number(summary.balance);
+
   const plannedSavings = Number(summary.plannedIncome) - Number(summary.plannedExpenses);
   const actualSavings = Number(summary.actualIncome) - Number(summary.actualExpenses);
 
   const cards = [
     {
-      label: "Saldo",
-      value: balance,
-      sub: `budżet: ${fmt(summary.totalPlannedBudget)} zł`,
+      label: "Saldo konta",
+      value: balanceValue,
+      sub: hasRealBalance
+        ? `otwarcie + przychody − wydatki`
+        : `brak salda otwarcia — ustaw w polu "Stan konta"`,
       icon: <PiggyBank className="h-4 w-4" />,
-      color: balance >= 0 ? "text-green-600" : "text-destructive",
-      prefix: balance >= 0 ? "+" : "",
+      color: balanceValue >= 0 ? "text-green-600" : "text-destructive",
+      prefix: balanceValue >= 0 ? "+" : "",
     },
     {
       label: "Zysk planowany",
       value: plannedSavings,
-      sub: `przychody - wydatki`,
+      sub: `przychody − wydatki planowane`,
       icon: <TrendingUp className="h-4 w-4" />,
       color: plannedSavings >= 0 ? "text-green-600" : "text-destructive",
       prefix: plannedSavings >= 0 ? "+" : "",
@@ -105,8 +121,8 @@ export function ExtendedSummaryCards({ summary }: { summary: BudgetSummary }) {
       value: Number(summary.plannedIncome),
       sub:
         summary.carryOver !== "0.00"
-          ? `+ ${fmt(summary.carryOver)} zł przeniesione`
-          : "szablon budżetu",
+          ? `+ ${fmt(summary.carryOver)} zł przeniesione z poprzedniego miesiąca`
+          : "suma z sekcji Przychody",
       icon: <ArrowUpRight className="h-4 w-4 text-green-600" />,
       color: "text-foreground",
       prefix: "",
@@ -115,7 +131,7 @@ export function ExtendedSummaryCards({ summary }: { summary: BudgetSummary }) {
       label: "Przychód rzeczywisty",
       value: Number(summary.actualIncome),
       sub: `z planowanych ${fmt(summary.plannedIncome)} zł`,
-      icon: <Wallet className="h-4 w-4 text-muted-foreground" />,
+      icon: <ArrowUpRight className="h-4 w-4 text-muted-foreground" />,
       color: "text-foreground",
       prefix: "",
     },
@@ -146,10 +162,223 @@ export function ExtendedSummaryCards({ summary }: { summary: BudgetSummary }) {
   );
 }
 
+// ─── BalanceCard ──────────────────────────────────────────────────────────────
+
+function BalanceField({
+  label,
+  value,
+  onSave,
+}: {
+  label: string;
+  value: string | null;
+  onSave: (v: number | null) => Promise<void>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [input, setInput] = useState(value ?? "");
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    setSaving(true);
+    const parsed = input.trim() === "" ? null : Number(input.replace(",", "."));
+    if (input.trim() !== "" && (isNaN(parsed!) || parsed! < 0)) {
+      setSaving(false);
+      return;
+    }
+    await onSave(parsed);
+    setSaving(false);
+    setEditing(false);
+  }
+
+  function handleCancel() {
+    setInput(value ?? "");
+    setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-muted-foreground w-28 shrink-0">{label}</span>
+        <Input
+          type="number"
+          min="0"
+          step="0.01"
+          className="h-7 text-xs font-mono w-32"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") handleCancel(); }}
+          autoFocus
+        />
+        <Button size="icon" variant="ghost" className="h-6 w-6" disabled={saving} onClick={handleSave}>
+          <Check className="h-3 w-3 text-green-600" />
+        </Button>
+        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={handleCancel}>
+          <X className="h-3 w-3 text-muted-foreground" />
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <div className="flex items-center gap-1.5">
+        <span className={cn("text-sm font-mono font-medium", value === null && "text-muted-foreground")}>
+          {value !== null ? `${fmt(value)} zł` : "—"}
+        </span>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-5 w-5"
+          onClick={() => { setInput(value ?? ""); setEditing(true); }}
+        >
+          <PencilIcon className="size-2.5" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export function BalanceCard({
+  period,
+  onRefresh,
+}: {
+  period: BudgetPeriodDetail;
+  onRefresh: () => void;
+}) {
+  async function patch(field: "openingBalance" | "closingBalance", value: number | null) {
+    const res = await fetch(`/api/budget/periods/${period.id}/balance`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ [field]: value }),
+    }).then((r) => r.json());
+    if (res.error) {
+      toast.error("Nie udało się zapisać salda");
+      return;
+    }
+    const label = field === "openingBalance" ? "Otwarcie" : "Zamknięcie";
+    toast.success(`${label} miesiąca zaktualizowane`);
+    onRefresh();
+  }
+
+  const { expectedBalance, discrepancy } = period.summary;
+  const discrepancyNum = discrepancy !== null ? Number(discrepancy) : null;
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <div className="flex items-center gap-2">
+          <Landmark className="h-4 w-4 text-muted-foreground" />
+          <CardTitle className="text-sm">Stan konta</CardTitle>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Rzeczywiste saldo rachunku — niezależnie od transakcji w budżecie
+        </p>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-2.5">
+        <BalanceField
+          label="Otwarcie miesiąca"
+          value={period.openingBalance}
+          onSave={(v) => patch("openingBalance", v)}
+        />
+        <BalanceField
+          label="Zamknięcie miesiąca"
+          value={period.closingBalance}
+          onSave={(v) => patch("closingBalance", v)}
+        />
+
+        {expectedBalance !== null && (
+          <>
+            <div className="border-t border-border/50 pt-2 mt-0.5" />
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Oczekiwane zamknięcie</span>
+              <span className="text-sm font-mono font-medium">{fmt(expectedBalance)} zł</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground -mt-1.5">
+              otwarcie + przychody − wydatki
+            </p>
+          </>
+        )}
+
+        {discrepancyNum !== null && (
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Różnica</span>
+            <span className={cn(
+              "text-sm font-mono font-semibold",
+              Math.abs(discrepancyNum) < 0.01
+                ? "text-green-600"
+                : discrepancyNum > 0
+                ? "text-green-600"
+                : "text-destructive"
+            )}>
+              {discrepancyNum > 0 ? "+" : ""}{fmt(discrepancy!)} zł
+            </span>
+          </div>
+        )}
+
+        {period.openingBalance === null && period.closingBalance === null && (
+          <p className="text-xs text-muted-foreground text-center py-1">
+            Kliknij <PencilIcon className="size-2.5 inline" /> przy wartości, aby ustawić saldo konta
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // ─── CategoryPieChart ─────────────────────────────────────────────────────────
 
+interface PieEntry {
+  name: string;
+  value: number;
+  color: string;
+}
+
+function PieTooltip({
+  active,
+  payload,
+  total,
+}: {
+  active?: boolean;
+  payload?: Array<{ name: string; value: number; payload: PieEntry }>;
+  total: number;
+}) {
+  if (!active || !payload?.length) return null;
+  const entry = payload[0];
+  return (
+    <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-md">
+      <div className="flex items-center gap-2">
+        <span
+          className="inline-block shrink-0 rounded-full"
+          style={{ width: 8, height: 8, backgroundColor: entry.payload.color }}
+        />
+        <span className="text-xs font-medium text-foreground">{entry.name}</span>
+      </div>
+      <p className="mt-0.5 text-xs text-muted-foreground">
+        {fmt(entry.value.toFixed(2))} zł ({((entry.value / total) * 100).toFixed(1)}%)
+      </p>
+    </div>
+  );
+}
+
+function PieLegend({ payload }: { payload?: Array<{ value: string; color: string }> }) {
+  if (!payload?.length) return null;
+  return (
+    <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 pt-2">
+      {payload.map((entry, i) => (
+        <div key={i} className="flex items-center gap-1.5">
+          <span
+            className="inline-block shrink-0 rounded-full"
+            style={{ width: 10, height: 10, backgroundColor: entry.color }}
+          />
+          <span className="text-[11px] text-foreground">{entry.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function CategoryPieChart({ items }: { items: CategorySummaryItem[] }) {
-  const data = items
+  const data: PieEntry[] = items
     .filter((item) => Number(item.actual) > 0)
     .map((item) => ({
       name: item.label,
@@ -196,26 +425,8 @@ export function CategoryPieChart({ items }: { items: CategorySummaryItem[] }) {
                 <Cell key={index} fill={entry.color} />
               ))}
             </Pie>
-            <RechartsTooltip
-              formatter={(value, name) => {
-                const n = typeof value === "number" ? value : Number(value);
-                return [`${fmt(n.toFixed(2))} zł (${((n / total) * 100).toFixed(1)}%)`, name];
-              }}
-              contentStyle={{
-                fontSize: "12px",
-                borderRadius: "8px",
-                border: "1px solid hsl(var(--border))",
-                background: "hsl(var(--card))",
-                color: "hsl(var(--foreground))",
-              }}
-            />
-            <Legend
-              iconType="circle"
-              iconSize={8}
-              formatter={(value) => (
-                <span style={{ fontSize: "11px" }}>{value}</span>
-              )}
-            />
+            <RechartsTooltip content={<PieTooltip total={total} />} />
+            <Legend content={<PieLegend />} />
           </PieChart>
         </ResponsiveContainer>
       </CardContent>

@@ -14,6 +14,7 @@ import type {
   updateTemplateCurrencySchema,
   createBudgetCategorySchema,
   updateBudgetCategorySchema,
+  updateBalanceSchema,
 } from './budget.schema'
 
 // BudgetCategory jest teraz globalną tabelą (nie enum) — slugi w postaci string
@@ -34,6 +35,7 @@ export type AnnualQueryDto = z.infer<typeof annualQuerySchema>
 export type UpdateTemplateCurrencyDto = z.infer<typeof updateTemplateCurrencySchema>
 export type CreateBudgetCategoryDto = z.infer<typeof createBudgetCategorySchema>
 export type UpdateBudgetCategoryDto = z.infer<typeof updateBudgetCategorySchema>
+export type UpdateBalanceDto = z.infer<typeof updateBalanceSchema>
 
 // Widok globalnej kategorii budżetowej
 export interface BudgetCategoryView {
@@ -56,6 +58,9 @@ export interface BudgetSummary {
   actualExpenses: string
   balance: string
   byCategory: CategorySummaryItem[]
+  // Śledzenie stanu konta (null gdy nie ustawiono)
+  expectedBalance: string | null   // openingBalance + actualIncome - actualExpenses
+  discrepancy: string | null       // closingBalance - expectedBalance
 }
 
 export interface CategorySummaryItem {
@@ -140,6 +145,8 @@ export interface BudgetPeriodDetail {
   month: number
   currency: string
   carryOverAmount: string
+  openingBalance: string | null
+  closingBalance: string | null
   closedAt: string | null
   incomes: BudgetIncomeView[]
   categoryPlans: BudgetCategoryPlanView[]

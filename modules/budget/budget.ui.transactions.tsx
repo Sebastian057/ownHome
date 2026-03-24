@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -117,12 +118,14 @@ export function AddTransactionDialog({
     setLoading(false);
     if (res.error) {
       setError(res.error.message);
+      toast.error("Nie udało się dodać transakcji");
       return;
     }
     setTitle("");
     setAmount("");
     setCategory("");
     setDate(new Date().toISOString().slice(0, 10));
+    toast.success("Transakcja została dodana");
     onSuccess();
     onClose();
   }
@@ -268,8 +271,10 @@ export function EditTransactionDialog({
     setLoading(false);
     if (res.error) {
       setError(res.error.message);
+      toast.error("Nie udało się zaktualizować transakcji");
       return;
     }
+    toast.success("Transakcja została zaktualizowana");
     onSuccess();
     onClose();
   }
@@ -436,10 +441,15 @@ export function TransactionTable({
 
   async function handleDelete(id: string) {
     setDeleting(id);
-    await fetch(`/api/budget/periods/${periodId}/transactions/${id}`, {
+    const res = await fetch(`/api/budget/periods/${periodId}/transactions/${id}`, {
       method: "DELETE",
-    });
+    }).then((r) => r.json());
     setDeleting(null);
+    if (res.error) {
+      toast.error("Nie udało się usunąć transakcji");
+      return;
+    }
+    toast.success("Transakcja została usunięta");
     onRefresh();
   }
 

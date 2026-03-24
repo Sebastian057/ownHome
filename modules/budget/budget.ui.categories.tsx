@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,7 @@ import {
   Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import {
   type BudgetCategoryView,
   type BudgetCategoryPlanView,
@@ -251,9 +252,11 @@ export function PlannedExpensesTable({
     setSaving(false);
     if (res.error) {
       setError(res.error.message);
+      toast.error("Nie udało się zapisać planów");
       return;
     }
     setEditing(false);
+    toast.success("Plany wydatków zostały zapisane");
     onRefresh?.();
   }
 
@@ -418,6 +421,105 @@ export function PlannedExpensesTable({
   );
 }
 
+// ─── Preset colors ────────────────────────────────────────────────────────────
+
+const PRESET_COLORS = [
+  // Reds
+  "#fca5a5", "#f87171", "#ef4444", "#dc2626", "#b91c1c", "#991b1b", "#7f1d1d", "#450a0a",
+  // Oranges
+  "#fdba74", "#fb923c", "#f97316", "#ea580c", "#c2410c", "#9a3412", "#7c2d12", "#431407",
+  // Ambers / Yellows
+  "#fde68a", "#fcd34d", "#fbbf24", "#f59e0b", "#d97706", "#b45309", "#92400e", "#78350f",
+  // Limes
+  "#d9f99d", "#bef264", "#a3e635", "#84cc16", "#65a30d", "#4d7c0f", "#3f6212", "#365314",
+  // Greens
+  "#bbf7d0", "#86efac", "#4ade80", "#22c55e", "#16a34a", "#15803d", "#166534", "#052e16",
+  // Teals / Cyans
+  "#a5f3fc", "#67e8f9", "#22d3ee", "#06b6d4", "#0891b2", "#0e7490", "#155e75", "#083344",
+  // Blues / Indigos
+  "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6", "#2563eb", "#1d4ed8", "#1e40af", "#1e3a8a",
+  // Purples / Pinks / Neutrals
+  "#e9d5ff", "#c4b5fd", "#a78bfa", "#8b5cf6", "#7c3aed", "#f9a8d4", "#ec4899", "#94a3b8",
+];
+
+// ─── ColorSwatchPicker ────────────────────────────────────────────────────────
+
+function ColorSwatchPicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (c: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  function handleToggle() {
+    if (!open && triggerRef.current) {
+      const r = triggerRef.current.getBoundingClientRect();
+      setPos({ top: r.bottom + 6, left: r.left });
+    }
+    setOpen((v) => !v);
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    function handleOutside(e: MouseEvent) {
+      const target = e.target as Node;
+      if (
+        panelRef.current?.contains(target) ||
+        triggerRef.current?.contains(target)
+      ) return;
+      setOpen(false);
+    }
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, [open]);
+
+  return (
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={handleToggle}
+        className={cn(
+          "h-7 w-7 shrink-0 rounded-full border-2 transition-all hover:scale-110",
+          open ? "border-foreground/70 scale-110" : "border-input hover:border-ring"
+        )}
+        style={{ backgroundColor: value }}
+        title="Wybierz kolor"
+      />
+      {open && (
+        <div
+          ref={panelRef}
+          style={{ position: "fixed", top: pos.top, left: pos.left, zIndex: 9999 }}
+          className="rounded-lg border border-border bg-popover p-2 shadow-xl"
+        >
+          <div className="grid grid-cols-8 gap-1">
+            {PRESET_COLORS.map((color) => (
+              <button
+                key={color}
+                type="button"
+                onClick={() => { onChange(color); setOpen(false); }}
+                className={cn(
+                  "h-5 w-5 rounded-full transition-transform hover:scale-125 focus:outline-none",
+                  value === color && "ring-2 ring-offset-1 ring-foreground scale-110"
+                )}
+                style={{
+                  backgroundColor: color,
+                  boxShadow: "0 0 0 1px rgba(128,128,128,0.3)",
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 // ─── CategoryManagerSection ───────────────────────────────────────────────────
 
 export function CategoryManagerSection({
@@ -429,13 +531,13 @@ export function CategoryManagerSection({
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState("");
-  const [editColor, setEditColor] = useState("#6b7280");
+  const [editColor, setEditColor] = useState(PRESET_COLORS[4]);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
 
   // New category form
   const [addLabel, setAddLabel] = useState("");
-  const [addColor, setAddColor] = useState("#6b7280");
+  const [addColor, setAddColor] = useState(PRESET_COLORS[4]);
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
 
@@ -456,23 +558,39 @@ export function CategoryManagerSection({
     setEditColor(cat.color);
   }
 
+  function cancelEdit() {
+    setEditingId(null);
+  }
+
   async function handleSaveEdit(id: string) {
     if (!editLabel.trim()) return;
     setSaving(true);
-    await fetch(`/api/budget/categories/${id}`, {
+    const res: ApiResponse<unknown> = await fetch(`/api/budget/categories/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ label: editLabel.trim(), color: editColor }),
-    });
+    }).then((r) => r.json());
     setSaving(false);
+    if (res.error) {
+      toast.error("Nie udało się zapisać kategorii");
+      return;
+    }
     setEditingId(null);
+    toast.success("Kategoria została zaktualizowana");
     onRefresh();
   }
 
   async function handleDelete(id: string) {
     setDeleting(id);
-    await fetch(`/api/budget/categories/${id}`, { method: "DELETE" });
+    const res: ApiResponse<unknown> = await fetch(`/api/budget/categories/${id}`, {
+      method: "DELETE",
+    }).then((r) => r.json());
     setDeleting(null);
+    if (res.error) {
+      toast.error("Nie udało się usunąć kategorii");
+      return;
+    }
+    toast.success("Kategoria została usunięta");
     onRefresh();
   }
 
@@ -480,7 +598,7 @@ export function CategoryManagerSection({
     if (!addLabel.trim()) return;
     const slug = generateSlug(addLabel);
     if (!slug) {
-      setAddError("Nieprawidłowa nazwa — nie można wygenerować sluga");
+      toast.error("Nieprawidłowa nazwa kategorii");
       return;
     }
     setAdding(true);
@@ -493,144 +611,124 @@ export function CategoryManagerSection({
     setAdding(false);
     if (res.error) {
       setAddError(res.error.message);
+      toast.error(res.error.message);
       return;
     }
     setAddLabel("");
-    setAddColor("#6b7280");
+    setAddColor(PRESET_COLORS[4]);
+    toast.success(`Kategoria „${addLabel.trim()}" została dodana`);
     onRefresh();
   }
 
+  const sorted = [...categories].sort((a, b) =>
+    a.label.localeCompare(b.label, "pl")
+  );
+
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1.5">
-        {categories.map((cat) => (
+      {/* Category list */}
+      <div className="grid grid-cols-2 gap-1.5">
+        {sorted.map((cat) => (
           <div
             key={cat.id}
-            className="flex items-center gap-3 rounded-lg border px-4 py-2.5 hover:bg-muted/20 transition-colors"
+            className="rounded-lg border transition-colors"
           >
-            {editingId === cat.id ? (
-              <>
-                <input
-                  type="color"
-                  value={editColor}
-                  onChange={(e) => setEditColor(e.target.value)}
-                  className="h-7 w-7 rounded cursor-pointer border border-input p-0.5 bg-transparent"
-                  title="Wybierz kolor"
-                />
-                <Input
-                  value={editLabel}
-                  onChange={(e) => setEditLabel(e.target.value)}
-                  className="h-8 flex-1 text-sm"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleSaveEdit(cat.id);
-                    if (e.key === "Escape") setEditingId(null);
-                  }}
-                  autoFocus
-                />
-                <Badge variant="outline" className="text-[10px] font-mono shrink-0">
-                  {cat.slug}
-                </Badge>
-                <Button
-                  size="sm"
-                  className="h-7 w-7 p-0"
-                  disabled={saving || !editLabel.trim()}
-                  onClick={() => handleSaveEdit(cat.id)}
-                >
-                  <Check className="h-3.5 w-3.5" />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 w-7 p-0"
-                  onClick={() => setEditingId(null)}
-                >
-                  <X className="h-3.5 w-3.5" />
-                </Button>
-              </>
-            ) : (
-              <>
-                <ColorDot color={cat.color} size={12} />
-                <span className="flex-1 text-sm font-medium">{cat.label}</span>
-                <Badge
-                  variant="outline"
-                  className="text-[10px] font-mono shrink-0"
-                >
-                  {cat.slug}
-                </Badge>
-                {cat.isSystem && (
-                  <Badge variant="secondary" className="text-[10px] shrink-0">
-                    system
-                  </Badge>
-                )}
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground shrink-0"
-                  onClick={() => startEdit(cat)}
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                </Button>
-                {cat.isSystem ? (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="shrink-0">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-7 w-7 p-0 text-muted-foreground/40 cursor-not-allowed"
-                          disabled
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      Nie można usunąć kategorii systemowej
-                    </TooltipContent>
-                  </Tooltip>
-                ) : (
+            <div className="flex items-center gap-3 px-4 py-2.5">
+              {editingId === cat.id ? (
+                <>
+                  <ColorSwatchPicker value={editColor} onChange={setEditColor} />
+                  <Input
+                    value={editLabel}
+                    onChange={(e) => setEditLabel(e.target.value)}
+                    className="h-8 flex-1 text-sm"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSaveEdit(cat.id);
+                      if (e.key === "Escape") cancelEdit();
+                    }}
+                    autoFocus
+                  />
+                  <Button
+                    size="sm"
+                    className="h-7 w-7 p-0 shrink-0"
+                    disabled={saving || !editLabel.trim()}
+                    onClick={() => handleSaveEdit(cat.id)}
+                  >
+                    <Check className="h-3.5 w-3.5" />
+                  </Button>
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive shrink-0"
-                    disabled={deleting === cat.id}
-                    onClick={() => handleDelete(cat.id)}
+                    className="h-7 w-7 p-0 shrink-0"
+                    onClick={cancelEdit}
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <X className="h-3.5 w-3.5" />
                   </Button>
-                )}
-              </>
-            )}
+                </>
+              ) : (
+                <>
+                  <ColorDot color={cat.color} size={12} />
+                  <span className="flex-1 text-sm font-medium">{cat.label}</span>
+                  {cat.isSystem && (
+                    <Badge variant="secondary" className="text-[10px] shrink-0">
+                      system
+                    </Badge>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground shrink-0"
+                    onClick={() => startEdit(cat)}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  {cat.isSystem ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="shrink-0">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 w-7 p-0 text-muted-foreground/40 cursor-not-allowed"
+                            disabled
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Nie można usunąć kategorii systemowej
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive shrink-0"
+                      disabled={deleting === cat.id}
+                      onClick={() => handleDelete(cat.id)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         ))}
       </div>
 
       {/* Add new category */}
-      <div className="flex flex-col gap-2 rounded-lg border p-4">
-        <p className="text-sm font-medium">Dodaj kategorię</p>
+      <div className="rounded-lg border p-4">
+        <p className="mb-3 text-sm font-medium">Dodaj kategorię</p>
         <div className="flex items-center gap-3">
-          <input
-            type="color"
-            value={addColor}
-            onChange={(e) => setAddColor(e.target.value)}
-            className="h-8 w-8 rounded cursor-pointer border border-input p-0.5 bg-transparent shrink-0"
-            title="Wybierz kolor"
-          />
+          <ColorSwatchPicker value={addColor} onChange={setAddColor} />
           <Input
             placeholder="Nazwa kategorii"
             value={addLabel}
             onChange={(e) => setAddLabel(e.target.value)}
-            className="h-8 text-sm"
+            className="h-8 flex-1 text-sm"
             onKeyDown={(e) => e.key === "Enter" && handleAdd()}
           />
-          {addLabel.trim() && (
-            <Badge
-              variant="outline"
-              className="text-[10px] font-mono shrink-0"
-            >
-              {generateSlug(addLabel) || "…"}
-            </Badge>
-          )}
           <Button
             size="sm"
             className="h-8 px-3 shrink-0"
@@ -638,10 +736,10 @@ export function CategoryManagerSection({
             onClick={handleAdd}
           >
             <Plus className="h-3.5 w-3.5 mr-1" />
-            {adding ? "Dodawanie..." : "Dodaj"}
+            {adding ? "Dodawanie…" : "Dodaj"}
           </Button>
         </div>
-        {addError && <p className="text-xs text-destructive">{addError}</p>}
+        {addError && <p className="mt-2 text-xs text-destructive">{addError}</p>}
       </div>
     </div>
   );

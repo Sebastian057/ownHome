@@ -3,6 +3,7 @@ import './globals.css';
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { Providers } from "./providers";
+import { Toaster } from "@/components/ui/sonner";
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -22,6 +23,7 @@ export default function RootLayout({
         <Providers>
           {children}
         </Providers>
+        <Toaster richColors position="bottom-right" />
       </body>
     </html>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,7 +58,7 @@ export function IncomeSection({
   async function handleAdd() {
     if (!addTitle.trim() || !addPlanned) return;
     setLoading(true);
-    await fetch(`/api/budget/periods/${periodId}/incomes`, {
+    const res = await fetch(`/api/budget/periods/${periodId}/incomes`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -65,18 +66,23 @@ export function IncomeSection({
         planned: Number(addPlanned),
         actual: addActual ? Number(addActual) : null,
       }),
-    });
+    }).then((r) => r.json());
     setLoading(false);
+    if (res.error) {
+      toast.error("Nie udało się dodać przychodu");
+      return;
+    }
     setAdding(false);
     setAddTitle("");
     setAddPlanned("");
     setAddActual("");
+    toast.success("Przychód został dodany");
     onRefresh();
   }
 
   async function handleSaveEdit(id: string) {
     setLoading(true);
-    await fetch(`/api/budget/periods/${periodId}/incomes/${id}`, {
+    const res = await fetch(`/api/budget/periods/${periodId}/incomes/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -84,16 +90,26 @@ export function IncomeSection({
         planned: editPlanned ? Number(editPlanned) : undefined,
         actual: editActual !== "" ? Number(editActual) : null,
       }),
-    });
+    }).then((r) => r.json());
     setLoading(false);
+    if (res.error) {
+      toast.error("Nie udało się zaktualizować przychodu");
+      return;
+    }
     setEditId(null);
+    toast.success("Przychód został zaktualizowany");
     onRefresh();
   }
 
   async function handleDelete(id: string) {
-    await fetch(`/api/budget/periods/${periodId}/incomes/${id}`, {
+    const res = await fetch(`/api/budget/periods/${periodId}/incomes/${id}`, {
       method: "DELETE",
-    });
+    }).then((r) => r.json());
+    if (res.error) {
+      toast.error("Nie udało się usunąć przychodu");
+      return;
+    }
+    toast.success("Przychód został usunięty");
     onRefresh();
   }
 
