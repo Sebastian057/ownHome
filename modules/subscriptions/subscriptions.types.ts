@@ -2,8 +2,6 @@ import type { BillingCycle } from '@prisma/client'
 import type { z } from 'zod'
 import type { createSubscriptionSchema, updateSubscriptionSchema } from './subscriptions.schema'
 
-// BudgetCategory jest teraz string (dynamiczne kategorie z DB)
-export type BudgetCategory = string
 export type { BillingCycle }
 
 export type CreateSubscriptionDto = z.infer<typeof createSubscriptionSchema>

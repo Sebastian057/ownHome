@@ -1,7 +1,7 @@
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
 import { apiError } from '@/lib/api-response';
-import type { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
 // Ratelimiter jest opcjonalny — jeśli Upstash nie jest skonfigurowany,
 // rate limiting jest pomijany (tryb developerski).
@@ -22,14 +22,14 @@ function createRatelimiter(): Ratelimit | null {
 
 const ratelimit = createRatelimiter();
 
-export async function withRateLimit(
+export async function withRateLimit<T>(
   identifier: string,
-  handler: () => Promise<NextResponse>
-): Promise<NextResponse> {
+  handler: () => Promise<NextResponse<T>>
+): Promise<NextResponse<T>> {
   if (ratelimit) {
     try {
       const { success } = await ratelimit.limit(identifier);
-      if (!success) return apiError('FORBIDDEN', 429) as unknown as NextResponse;
+      if (!success) return apiError('RATE_LIMIT_EXCEEDED', 429) as NextResponse<T>;
     } catch {
       // Redis niedostępny — kontynuuj bez rate limitingu
     }

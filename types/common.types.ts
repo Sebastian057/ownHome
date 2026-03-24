@@ -8,6 +8,7 @@ export type ErrorCode =
   | 'NOT_FOUND'
   | 'VALIDATION_ERROR'
   | 'CONFLICT'
+  | 'RATE_LIMIT_EXCEEDED'
   | 'INTERNAL_ERROR';
 
 export interface ApiError {

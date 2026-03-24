@@ -6,7 +6,7 @@ import type { UserProfile, UpdateProfileDto, Role } from './module.types';
 // ─── Helper: pobierz fullName i email z Supabase Auth ────────────────────────
 
 async function getAuthUserData(userId: string) {
-  const supabase = await createSupabaseAdminClient();
+  const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase.auth.admin.getUserById(userId);
   if (error || !data.user) return { fullName: null, email: null };
 

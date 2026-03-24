@@ -20,7 +20,7 @@ export const adminService = {
     if (profiles.length === 0) return [];
 
     // Pobierz dane z Supabase Auth i złącz z profilami
-    const supabase = await createSupabaseAdminClient();
+    const supabase = createSupabaseAdminClient();
     const { data: { users: authUsers } } = await supabase.auth.admin.listUsers({ perPage: 1000 });
     const authMap = new Map(authUsers.map((u) => [u.id, u]));
 
@@ -49,7 +49,7 @@ export const adminService = {
 
     // Utwórz użytkownika w Supabase Auth z full_name w user_metadata.
     // Trigger handle_new_user() automatycznie tworzy user_profiles.
-    const supabase = await createSupabaseAdminClient();
+    const supabase = createSupabaseAdminClient();
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email: data.email,
       password: data.password,
@@ -97,7 +97,7 @@ export const adminService = {
     const updated = await adminRepository.updateRole(targetUserId, data.role);
 
     // Pobierz dane auth
-    const supabase = await createSupabaseAdminClient();
+    const supabase = createSupabaseAdminClient();
     const { data: authData } = await supabase.auth.admin.getUserById(targetUserId);
     const meta2 = authData.user?.user_metadata ?? {};
     const updatedFullName =
@@ -127,7 +127,7 @@ export const adminService = {
     const targetProfile = await adminRepository.getProfileByUserId(targetUserId);
     if (!targetProfile) throw new AppError('NOT_FOUND');
 
-    const supabase = await createSupabaseAdminClient();
+    const supabase = createSupabaseAdminClient();
     const { error: deleteError } = await supabase.auth.admin.deleteUser(targetUserId);
     if (deleteError) throw new AppError('INTERNAL_ERROR', deleteError.message);
 

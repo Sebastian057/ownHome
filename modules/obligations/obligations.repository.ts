@@ -82,7 +82,7 @@ export const obligationRepository = {
   async getPaymentForMonth(templateId: string, userId: string, year: number, month: number) {
     return prisma.recurringPayment.findFirst({
       where: { templateId, userId, year, month },
-      include: { template: { select: { name: true, category: true, defaultAmount: true, billingDay: true, billingCycle: true } } },
+      include: { template: { select: { name: true, category: true, defaultAmount: true, billingDay: true, billingCycle: true, currency: true } } },
     })
   },
 
