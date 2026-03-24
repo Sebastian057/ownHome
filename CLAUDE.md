@@ -67,7 +67,50 @@ Każdy moduł **musi** zawierać dokładnie te pliki w tej kolejności:
   module.repository.ts  ← 3. Dostęp do Prisma (jedyne miejsce)
   module.service.ts     ← 4. Logika biznesowa + ownership checks + eventy
   module.api.ts         ← 5. Route Handler: auth → validate → service → response
-  module.ui.tsx         ← 6. Komponenty React (shadcn, stateless/dumb)
+  module.ui.tsx         ← 6. Komponenty React (shadcn, stateless/dumb) — publiczny entry point
+```
+
+### Podział pliku UI (wymagany gdy > 400 linii)
+
+Gdy `module.ui.tsx` przekracza **400 linii**, OBOWIĄZKOWO rozbij go na pliki sekcji:
+
+```
+/modules/<module-name>/
+  module.ui.tsx              ← entry point (< 200 ln): re-eksporty + komponenty Page-level
+  module.ui.<section>.tsx    ← sekcja/domena (< 500 ln każdy)
+```
+
+**Konwencja nazw sekcji** — dopasuj do domeny:
+`form`, `card`, `table`, `forms`, `info`, `insurance`, `service`, `maintenance`, `inspections`,
+`summary`, `transactions`, `income`, `template`, `categories`
+
+**Zasady podziału (bezwzględne):**
+
+1. Strony (`app/`) importują **WYŁĄCZNIE** z `module.ui.tsx` — żadnych zmian importów w `app/`
+2. Pliki sekcji (`module.ui.<section>.tsx`) NIE są importowane bezpośrednio przez `app/`
+3. `module.ui.tsx` re-eksportuje wszystko co potrzebują strony:
+   ```ts
+   // module.ui.tsx
+   export { VehicleFormDialog } from './module.ui.form'
+   export { VehicleInsuranceTab } from './module.ui.insurance'
+   ```
+4. Importy wewnętrzne używają ścieżki relatywnej:
+   ```ts
+   import { InsuranceCard } from './vehicles.ui.insurance'
+   ```
+5. Każdy plik sekcji ma własną dyrektywę `'use client'` i wszystkie potrzebne importy
+6. Komponenty pomocnicze (dialogi, karty) eksportowane z pliku sekcji, a nie z ui.tsx bezpośrednio
+
+**Przykład (moduł vehicles):**
+```
+modules/vehicles/
+  vehicles.ui.tsx              ← VehicleListPage, VehicleDetailPage + re-eksporty
+  vehicles.ui.form.tsx         ← VehicleFormDialog
+  vehicles.ui.info.tsx         ← VehicleInfoTab, InfoSection, InfoRow
+  vehicles.ui.insurance.tsx    ← VehicleInsuranceTab, InsuranceFormDialog, InsuranceCard
+  vehicles.ui.inspections.tsx  ← VehicleInspectionsTab, InspectionFormDialog, InspectionCard
+  vehicles.ui.service.tsx      ← VehicleServiceTab, ServiceVisitFormDialog, ServiceVisitCard
+  vehicles.ui.maintenance.tsx  ← VehicleMaintenanceTab, MaintenanceLogFormDialog
 ```
 
 ### Konwencje nazewnicze

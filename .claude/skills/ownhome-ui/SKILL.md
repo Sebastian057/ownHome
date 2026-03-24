@@ -146,16 +146,77 @@ npx shadcn@latest add <component> [component2] ...
 
 ---
 
-## Krok 2 — Struktura `module.ui.tsx`
+## Krok 2 — Struktura pliku UI (+ zasada podziału)
+
+### Kiedy rozbijać `module.ui.tsx`
+
+**Próg obowiązkowy: > 400 linii** — jeśli `module.ui.tsx` przekracza 400 linii, MUSISZ rozbić go
+na pliki sekcji według konwencji `module.ui.<section>.tsx`.
+
+### Konwencja plików sekcji
+
+```
+modules/<module>/
+  <module>.ui.tsx              ← entry point (< 200 ln): re-eksporty + komponenty Page-level
+  <module>.ui.<section>.tsx    ← sekcja/domena (< 500 ln każdy)
+```
+
+**Nazwy sekcji** — dopasuj do domeny komponentu:
+`form`, `card`, `table`, `forms`, `info`, `insurance`, `service`, `maintenance`,
+`inspections`, `summary`, `transactions`, `income`, `template`, `categories`
+
+### Zasady podziału (bezwzględne)
+
+1. **`app/` importuje WYŁĄCZNIE z `module.ui.tsx`** — nigdy z pliku sekcji
+2. `module.ui.tsx` zawiera re-eksporty wszystkiego co potrzebują strony:
+   ```ts
+   // module.ui.tsx
+   export { VehicleFormDialog } from './vehicles.ui.form'
+   export { VehicleInsuranceTab, InsuranceCard } from './vehicles.ui.insurance'
+   ```
+3. Importy wewnętrzne (plik sekcji → plik sekcji lub → ui.tsx) używają ścieżki relatywnej
+4. Każdy plik sekcji ma własną dyrektywę `'use client'` i kompletne importy
+5. Komponenty pomocnicze (private, np. `TemplateRow`) zostają w pliku który je używa — nieeksportowane
+
+### Przykład rozbicia (moduł vehicles — 7 plików)
+
+```
+modules/vehicles/
+  vehicles.ui.tsx              ← VehicleListPage, VehicleDetailPage + re-eksporty sekcji
+  vehicles.ui.form.tsx         ← VehicleFormDialog
+  vehicles.ui.info.tsx         ← VehicleInfoTab, InfoSection, InfoRow
+  vehicles.ui.insurance.tsx    ← VehicleInsuranceTab, InsuranceFormDialog, InsuranceCard
+  vehicles.ui.inspections.tsx  ← VehicleInspectionsTab, InspectionFormDialog, InspectionCard
+  vehicles.ui.service.tsx      ← VehicleServiceTab, ServiceVisitFormDialog, ServiceVisitCard
+  vehicles.ui.maintenance.tsx  ← VehicleMaintenanceTab, MaintenanceLogFormDialog
+```
+
+```ts
+// vehicles.ui.tsx — entry point
+'use client'
+import { VehicleFormDialog } from './vehicles.ui.form'
+import { VehicleInfoTab } from './vehicles.ui.info'
+import { VehicleInsuranceTab } from './vehicles.ui.insurance'
+// ...
+
+// Re-eksporty dla app/
+export { VehicleFormDialog } from './vehicles.ui.form'
+export { VehicleInsuranceTab, InsuranceCard } from './vehicles.ui.insurance'
+
+export function VehicleListPage() { ... }
+export function VehicleDetailPage() { ... }
+```
+
+### Struktura każdego pliku
 
 ```
 "use client"                      ← zawsze, komponenty używają useState/useEffect
 
 1. importy
-2. funkcje fetch (async, ApiResponse<T>)
-3. <XList>    — tabela lub karty, loading/error/empty state
-4. <XForm>    — formularz z react-hook-form + zodResolver
-5. <XPage>    — składa List + Form (Dialog lub dedykowana strona)
+2. [opcjonalnie] funkcje fetch (async, ApiResponse<T>) — jeśli komponent sam fetch-uje
+3. <XList> lub <XCard>  — tabela/lista lub karta, loading/error/empty state
+4. <XForm> lub <XDialog> — formularz z react-hook-form + zodResolver
+5. <XPage>              — składa komponenty (tylko w module.ui.tsx)
 ```
 
 ---

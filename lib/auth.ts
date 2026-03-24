@@ -9,15 +9,18 @@ export interface Session {
 export async function getSession(): Promise<Session | null> {
   const supabase = await createSupabaseServerClient();
 
+  // getUser() authenticates against Supabase Auth server — safe for server-side use
+  // getSession() reads from cookies without verifying — insecure on server
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
 
-  if (!session?.user) return null;
+  if (error || !user) return null;
 
   return {
-    userId: session.user.id,
-    email: session.user.email ?? '',
+    userId: user.id,
+    email: user.email ?? '',
   };
 }
 
