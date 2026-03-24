@@ -18,6 +18,7 @@ import {
   type BudgetCategoryView,
   type CreateBudgetCategoryDto,
   type UpdateBudgetCategoryDto,
+  type UpdateBalanceDto,
 } from './budget.types'
 import type { Prisma, BudgetPeriod, BudgetIncome, BudgetCategoryPlan, Transaction } from '@prisma/client'
 
@@ -65,6 +66,20 @@ function calculateSummary(period: PeriodWithRelations, categories: BudgetCategor
     return aOrder !== bOrder ? aOrder - bOrder : a.label.localeCompare(b.label)
   })
 
+  // Stan konta — obliczane tylko gdy openingBalance jest ustawiony
+  const openingBal = period.openingBalance !== null && period.openingBalance !== undefined
+    ? Number(period.openingBalance)
+    : null
+  const closingBal = period.closingBalance !== null && period.closingBalance !== undefined
+    ? Number(period.closingBalance)
+    : null
+  const expectedBalance = openingBal !== null
+    ? (openingBal + actualIncome - actualExpenses).toFixed(2)
+    : null
+  const discrepancy = closingBal !== null && expectedBalance !== null
+    ? (closingBal - Number(expectedBalance)).toFixed(2)
+    : null
+
   return {
     plannedIncome: plannedIncome.toFixed(2),
     actualIncome: actualIncome.toFixed(2),
@@ -74,6 +89,8 @@ function calculateSummary(period: PeriodWithRelations, categories: BudgetCategor
     actualExpenses: actualExpenses.toFixed(2),
     balance: (plannedIncome + Number(period.carryOverAmount) - actualExpenses).toFixed(2),
     byCategory,
+    expectedBalance,
+    discrepancy,
   }
 }
 
@@ -93,6 +110,12 @@ function mapPeriodDetail(
     month: period.month,
     currency: period.currency,
     carryOverAmount: Number(period.carryOverAmount).toFixed(2),
+    openingBalance: period.openingBalance !== null && period.openingBalance !== undefined
+      ? Number(period.openingBalance).toFixed(2)
+      : null,
+    closingBalance: period.closingBalance !== null && period.closingBalance !== undefined
+      ? Number(period.closingBalance).toFixed(2)
+      : null,
     closedAt: period.closedAt?.toISOString() ?? null,
     incomes: period.incomes.map(inc => ({
       id: inc.id,
@@ -227,15 +250,24 @@ export const budgetService = {
     // 2. Pobierz lub utwórz szablon
     const template = await budgetRepository.getOrCreateTemplate(userId)
 
-    // 3. Utwórz okres
+    // 3. Sprawdź poprzedni miesiąc — auto-carry openingBalance z closingBalance poprzedniego miesiąca
+    const prevYear = data.month === 1 ? data.year - 1 : data.year
+    const prevMonth = data.month === 1 ? 12 : data.month - 1
+    const prevPeriod = await budgetRepository.getPeriodByYearMonth(prevYear, prevMonth, userId)
+    const inheritedOpeningBalance = prevPeriod?.closingBalance !== null && prevPeriod?.closingBalance !== undefined
+      ? Number(prevPeriod.closingBalance)
+      : undefined
+
+    // 4. Utwórz okres
     const period = await budgetRepository.createPeriod({
       userId,
       year: data.year,
       month: data.month,
       carryOverAmount: data.carryOverAmount ?? 0,
+      ...(inheritedOpeningBalance !== undefined && { openingBalance: inheritedOpeningBalance }),
     })
 
-    // 4. Kopiuj przychody z szablonu
+    // 5. Kopiuj przychody z szablonu
     if (template.incomes.length > 0) {
       await budgetRepository.createManyIncomes(
         template.incomes.map(inc => ({
@@ -249,7 +281,7 @@ export const budgetService = {
       )
     }
 
-    // 5. Kopiuj plany kategorii z szablonu
+    // 6. Kopiuj plany kategorii z szablonu
     if (template.expenses.length > 0) {
       await budgetRepository.createManyCategoryPlans(
         template.expenses.map(exp => ({
@@ -261,16 +293,19 @@ export const budgetService = {
       )
     }
 
-    // 6. Auto-booking subskrypcji — importujemy lazy aby uniknąć circular dependency
+    // 7. Auto-booking subskrypcji — tylko te, których data płatności już minęła (nextBillingDate <= dziś)
+    //    Subskrypcje z przyszłą datą NIE są bookowane — zostaną zaksięgowane lazily przy otwarciu okresu
     const periodStart = new Date(data.year, data.month - 1, 1)
     const periodEnd = new Date(data.year, data.month, 0)
+    const today = new Date()
 
     const { subscriptionRepository } = await import('@/modules/subscriptions/subscriptions.repository')
     const subscriptions = await subscriptionRepository.getActiveForPeriod(userId, periodStart, periodEnd)
+    const dueSubscriptions = subscriptions.filter(sub => sub.nextBillingDate <= today)
 
-    if (subscriptions.length > 0) {
+    if (dueSubscriptions.length > 0) {
       await budgetRepository.createManyTransactions(
-        subscriptions.map(sub => ({
+        dueSubscriptions.map(sub => ({
           periodId: period.id,
           userId,
           date: sub.nextBillingDate,
@@ -281,14 +316,13 @@ export const budgetService = {
           sourceId: sub.id,
         }))
       )
-      // Aktualizuj nextBillingDate dla każdej zaksięgowanej subskrypcji (równolegle)
-      await Promise.all(subscriptions.map(sub => {
+      await Promise.all(dueSubscriptions.map(sub => {
         const next = calculateNextBillingDate(sub.nextBillingDate, sub.billingCycle)
         return subscriptionRepository.updateNextBillingDate(sub.id, userId, next)
       }))
     }
 
-    // 7. Generuj oczekujące płatności cykliczne
+    // 8. Generuj oczekujące płatności cykliczne
     const { obligationRepository } = await import('@/modules/obligations/obligations.repository')
     const recurringTemplates = await obligationRepository.getActiveForPeriod(userId)
 
@@ -307,14 +341,14 @@ export const budgetService = {
       )
     }
 
-    // 8. Event
+    // 9. Event
     await eventEmitter.emit(
       'budget.period.created',
       { periodId: period.id, year: data.year, month: data.month },
       userId
     )
 
-    // 9. Zwróć pełny widok
+    // 10. Zwróć pełny widok
     return budgetService.getPeriodDetail(period.id, userId)
   },
 
@@ -332,10 +366,17 @@ export const budgetService = {
     ])
     if (!period) throw new AppError('NOT_FOUND')
 
+    // Lazy booking: zaksięguj subskrypcje których data już minęła, a jeszcze nie ma transakcji
+    await bookDueSubscriptionsForPeriod(id, userId, period.year, period.month)
+
+    // Odśwież dane okresu po potencjalnym booking (nowe transakcje mogły zostać dodane)
+    const refreshed = await budgetRepository.getPeriodDetail(id, userId)
+    if (!refreshed) throw new AppError('NOT_FOUND')
+
     const { obligationRepository } = await import('@/modules/obligations/obligations.repository')
     const pendingPayments = await obligationRepository.listByPeriodId(id, userId)
 
-    return mapPeriodDetail(period, pendingPayments, categories)
+    return mapPeriodDetail(refreshed, pendingPayments, categories)
   },
 
   async resetPeriod(id: string, userId: string) {
@@ -388,6 +429,17 @@ export const budgetService = {
   async closePeriod(id: string, userId: string) {
     const result = await budgetRepository.closePeriod(id, userId)
     if (result.count === 0) throw new AppError('NOT_FOUND')
+  },
+
+  async updateBalance(id: string, userId: string, data: UpdateBalanceDto): Promise<BudgetPeriodDetail> {
+    const ok = await budgetRepository.getPeriodOwnership(id, userId)
+    if (!ok) throw new AppError('NOT_FOUND')
+    const result = await budgetRepository.updatePeriodBalance(id, userId, {
+      openingBalance: data.openingBalance,
+      closingBalance: data.closingBalance,
+    })
+    if (result.count === 0) throw new AppError('NOT_FOUND')
+    return budgetService.getPeriodDetail(id, userId)
   },
 
   // ─── Incomes ─────────────────────────────────────────────────────────────────
@@ -652,6 +704,52 @@ export const budgetService = {
     const result = await budgetRepository.deleteCategory(id)
     if (result.count === 0) throw new AppError('NOT_FOUND')
   },
+}
+
+// ─── Helper: bookDueSubscriptionsForPeriod ───────────────────────────────────
+//
+// Lazy booking: wywoływany przy każdym getPeriodDetail.
+// Zaksięgowuje subskrypcje, których nextBillingDate już minęła, ale jeszcze nie mają
+// transakcji w tym okresie. Idempotentne — sprawdza istniejące sourceId przed zapisem.
+
+async function bookDueSubscriptionsForPeriod(
+  periodId: string,
+  userId: string,
+  year: number,
+  month: number
+): Promise<void> {
+  const today = new Date()
+  const periodStart = new Date(year, month - 1, 1)
+  // Jeśli okres jest w przyszłości — nic nie rób
+  if (periodStart > today) return
+
+  const periodEnd = new Date(year, month, 0)
+  const upperBound = today < periodEnd ? today : periodEnd
+
+  const { subscriptionRepository } = await import('@/modules/subscriptions/subscriptions.repository')
+  const dueSubs = await subscriptionRepository.getActiveForPeriod(userId, periodStart, upperBound)
+  if (dueSubs.length === 0) return
+
+  const alreadyBooked = await budgetRepository.getBookedSubscriptionSourceIds(periodId)
+  const toBook = dueSubs.filter(sub => !alreadyBooked.has(sub.id))
+  if (toBook.length === 0) return
+
+  await budgetRepository.createManyTransactions(
+    toBook.map(sub => ({
+      periodId,
+      userId,
+      date: sub.nextBillingDate,
+      title: sub.name,
+      amount: sub.amount,
+      category: sub.category,
+      source: 'SUBSCRIPTION' as const,
+      sourceId: sub.id,
+    }))
+  )
+  await Promise.all(toBook.map(sub => {
+    const next = calculateNextBillingDate(sub.nextBillingDate, sub.billingCycle)
+    return subscriptionRepository.updateNextBillingDate(sub.id, userId, next)
+  }))
 }
 
 // ─── Helper: calculateNextBillingDate ────────────────────────────────────────

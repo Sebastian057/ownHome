@@ -19,6 +19,7 @@ import {
   ExtendedSummaryCards,
   CategoryPieChart,
   BudgetSummaryTable,
+  BalanceCard,
 } from "./budget.ui.summary";
 
 import {
@@ -45,6 +46,7 @@ export {
   ExtendedSummaryCards,
   CategoryPieChart,
   BudgetSummaryTable,
+  BalanceCard,
   TransactionTable,
   AddTransactionDialog,
   EditTransactionDialog,
@@ -201,78 +203,81 @@ export function MonthlyReportTab({
     <div className="flex flex-col gap-5">
       <ExtendedSummaryCards summary={period.summary} />
 
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-        {/* Dochód card — interaktywna sekcja przychodów */}
-        <IncomeSection
-          periodId={period.id}
-          incomes={period.incomes}
-          onRefresh={onRefresh ?? (() => {})}
-        />
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-2 xl:items-start">
+        {/* Lewa kolumna: Przychody → Kategorie wydatków */}
+        <div className="flex flex-col gap-5">
+          <IncomeSection
+            periodId={period.id}
+            incomes={period.incomes}
+            onRefresh={onRefresh ?? (() => {})}
+          />
+          <BudgetSummaryTable items={period.summary.byCategory} />
+        </div>
 
-        {/* Wydatki card */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <ArrowDownLeft className="h-4 w-4 text-destructive" />
-              Wydatki
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex justify-between text-sm mb-3">
-              <span className="text-muted-foreground">Zaplanowane</span>
-              <span className="font-mono font-medium">
-                {Number(period.summary.plannedExpenses).toLocaleString("pl-PL", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })} zł
-              </span>
-            </div>
-            <div className="flex justify-between text-sm mb-3">
-              <span className="text-muted-foreground">Rzeczywiste</span>
-              <span className="font-mono font-medium text-destructive">
-                {Number(period.summary.actualExpenses).toLocaleString("pl-PL", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })} zł
-              </span>
-            </div>
-            <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <div
-                className={cn(
-                  "h-full rounded-full transition-all",
-                  Number(period.summary.actualExpenses) >
-                    Number(period.summary.plannedExpenses)
-                    ? "bg-destructive"
-                    : "bg-primary"
-                )}
-                style={{
-                  width: `${Math.min(
-                    100,
-                    Number(period.summary.plannedExpenses) > 0
-                      ? (Number(period.summary.actualExpenses) /
-                          Number(period.summary.plannedExpenses)) *
-                          100
-                      : 0
-                  )}%`,
-                }}
-              />
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              {Number(period.summary.plannedExpenses) > 0
-                ? `${Math.round(
-                    (Number(period.summary.actualExpenses) /
-                      Number(period.summary.plannedExpenses)) *
-                      100
-                  )}% zaplanowanego budżetu`
-                : "Brak planowanych wydatków"}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+        {/* Prawa kolumna: Wydatki → Stan konta → Wykres */}
+        <div className="flex flex-col gap-5">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <ArrowDownLeft className="h-4 w-4 text-destructive" />
+                Wydatki
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex justify-between text-sm mb-3">
+                <span className="text-muted-foreground">Zaplanowane</span>
+                <span className="font-mono font-medium">
+                  {Number(period.summary.plannedExpenses).toLocaleString("pl-PL", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })} zł
+                </span>
+              </div>
+              <div className="flex justify-between text-sm mb-3">
+                <span className="text-muted-foreground">Rzeczywiste</span>
+                <span className="font-mono font-medium text-destructive">
+                  {Number(period.summary.actualExpenses).toLocaleString("pl-PL", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })} zł
+                </span>
+              </div>
+              <div className="h-2 bg-muted rounded-full overflow-hidden">
+                <div
+                  className={cn(
+                    "h-full rounded-full transition-all",
+                    Number(period.summary.actualExpenses) >
+                      Number(period.summary.plannedExpenses)
+                      ? "bg-destructive"
+                      : "bg-primary"
+                  )}
+                  style={{
+                    width: `${Math.min(
+                      100,
+                      Number(period.summary.plannedExpenses) > 0
+                        ? (Number(period.summary.actualExpenses) /
+                            Number(period.summary.plannedExpenses)) *
+                            100
+                        : 0
+                    )}%`,
+                  }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                {Number(period.summary.plannedExpenses) > 0
+                  ? `${Math.round(
+                      (Number(period.summary.actualExpenses) /
+                        Number(period.summary.plannedExpenses)) *
+                        100
+                    )}% zaplanowanego budżetu`
+                  : "Brak planowanych wydatków"}
+              </p>
+            </CardContent>
+          </Card>
 
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-        <BudgetSummaryTable items={period.summary.byCategory} />
-        <CategoryPieChart items={period.summary.byCategory} />
+          <BalanceCard period={period} onRefresh={onRefresh ?? (() => {})} />
+          <CategoryPieChart items={period.summary.byCategory} />
+        </div>
       </div>
     </div>
   );

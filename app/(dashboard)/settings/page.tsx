@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { toast } from "sonner";
 import { useTheme } from "next-themes";
 import useSWR from "swr";
 import { useUser } from "@/components/user-provider";
@@ -156,14 +157,12 @@ function ProfileTab() {
   const [phone, setPhone] = useState(ctxProfile?.phone ?? "");
   const [saving, setSaving] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
-  const [profileOk, setProfileOk] = useState(false);
   const [avatarDialogOpen, setAvatarDialogOpen] = useState(false);
   // Password
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [pwSaving, setPwSaving] = useState(false);
   const [pwError, setPwError] = useState<string | null>(null);
-  const [pwOk, setPwOk] = useState(false);
 
   useEffect(() => {
     if (ctxProfile) {
@@ -177,7 +176,6 @@ function ProfileTab() {
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault();
     setProfileError(null);
-    setProfileOk(false);
     setSaving(true);
     const res: ApiResponse<UserProfile> = await fetch("/api/profile", {
       method: "PATCH",
@@ -189,11 +187,10 @@ function ProfileTab() {
       }),
     }).then((r) => r.json());
     setSaving(false);
-    if (res.error) { setProfileError(res.error.message); return; }
+    if (res.error) { setProfileError(res.error.message); toast.error(res.error.message); return; }
     setProfile(res.data);
     refresh();
-    setProfileOk(true);
-    setTimeout(() => setProfileOk(false), 3000);
+    toast.success("Dane zostały zapisane");
   }
 
   async function handleChangePassword(e: React.FormEvent) {
@@ -209,11 +206,10 @@ function ProfileTab() {
       body: JSON.stringify({ newPassword }),
     }).then((r) => r.json());
     setPwSaving(false);
-    if (res.error) { setPwError(res.error.message); return; }
+    if (res.error) { setPwError(res.error.message); toast.error(res.error.message); return; }
     setNewPassword("");
     setConfirmPassword("");
-    setPwOk(true);
-    setTimeout(() => setPwOk(false), 3000);
+    toast.success("Hasło zostało zmienione");
   }
 
   if (!profile) return <Skeleton className="h-64 w-full rounded-xl" />;
@@ -300,7 +296,6 @@ function ProfileTab() {
                 </div>
               </div>
               {profileError && <p className="text-sm text-destructive">{profileError}</p>}
-              {profileOk && <p className="text-sm text-green-600">Zapisano</p>}
               <Button type="submit" disabled={saving}>{saving ? "Zapisywanie…" : "Zapisz zmiany"}</Button>
             </form>
           </CardContent>
@@ -333,7 +328,6 @@ function ProfileTab() {
                 </div>
               </div>
               {pwError && <p className="text-sm text-destructive">{pwError}</p>}
-              {pwOk && <p className="text-sm text-green-600">Hasło zmienione</p>}
               <Button type="submit" disabled={pwSaving}>{pwSaving ? "Zapisywanie…" : "Zmień hasło"}</Button>
             </form>
           </CardContent>

@@ -87,3 +87,13 @@ export const updateBudgetCategorySchema = z.object({
   isActive: z.boolean().optional(),
   sortOrder: z.number().int().optional(),
 })
+
+// ─── Balance reconciliation ───────────────────────────────────────────────────
+
+export const updateBalanceSchema = z.object({
+  openingBalance: z.number().nullable().optional(),
+  closingBalance: z.number().nullable().optional(),
+}).refine(
+  data => data.openingBalance !== undefined || data.closingBalance !== undefined,
+  { message: 'At least one of openingBalance or closingBalance must be provided' }
+)
