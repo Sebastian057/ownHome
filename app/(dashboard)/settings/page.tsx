@@ -163,6 +163,7 @@ function ProfileTab() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [pwSaving, setPwSaving] = useState(false);
   const [pwError, setPwError] = useState<string | null>(null);
+  const [pwOk, setPwOk] = useState(false);
 
   useEffect(() => {
     if (ctxProfile) {

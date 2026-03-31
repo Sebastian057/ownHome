@@ -413,6 +413,8 @@ Typy z kroku 1-3 są importowane w 4-7 — nie deklarowane ponownie.
 - Response body jest zawsze `application/json` — nigdy HTML.
 - Pagination przez `cursor` lub `page/limit` — nigdy `offset` nieograniczony.
 
+> Pełna dokumentacja implementacji React Native: **sekcja 15** oraz `.claude/skills/ownhome-mobile/SKILL.md`.
+
 ---
 
 ## 13. Obsługa błędów
@@ -574,5 +576,172 @@ export async function POST(req: Request) {
 
 ---
 
-*Koniec CLAUDE.md — wersja 1.0*
+## 15. Mobile — React Native (Expo)
+
+> Pełna dokumentacja wzorców mobilnych: `.claude/skills/ownhome-mobile/SKILL.md`
+
+### 15.1 Stack mobilny
+
+```
+apps/mobile/                    ← Expo SDK 53, Managed Workflow
+├── Expo Router v4              ← file-based routing (jak Next.js App Router)
+├── @supabase/supabase-js       ← auth (token refresh automatyczny)
+├── expo-secure-store           ← przechowywanie JWT (Keychain/Keystore, NIE AsyncStorage)
+├── @tanstack/react-query       ← server state (cache, invalidation, offline)
+├── zustand                     ← lokalny UI state
+├── NativeWind v4               ← Tailwind CSS w React Native
+├── Victory Native XL           ← wykresy (React Native Skia)
+└── react-hook-form + zod       ← formularze (te same schematy co web)
+```
+
+### 15.2 Monorepo — współdzielone pakiety
+
+Po migracji do Turborepo projekt będzie zawierał:
+
+```
+packages/
+├── types/      ← ApiResponse<T>, AppError, ErrorCode, PaginationMeta, wszystkie DTOs
+├── schemas/    ← Zod schematy (reużywane w web i mobile — ta sama walidacja)
+└── api-client/ ← typowany fetch wrapper z auth headers i retry na 401
+```
+
+Importuj z workspace pakietów, nie duplikuj typów:
+```ts
+import type { ApiResponse, Subscription } from '@ownhome/types';
+import { createSubscriptionSchema } from '@ownhome/schemas';
+import { createApiClient } from '@ownhome/api-client';
+```
+
+### 15.3 Auth w mobile (obowiązkowy wzorzec)
+
+```typescript
+// apps/mobile/lib/supabase.ts
+import * as SecureStore from 'expo-secure-store';
+import { createClient } from '@supabase/supabase-js';
+
+export const supabase = createClient(
+  process.env.EXPO_PUBLIC_SUPABASE_URL!,
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!,
+  {
+    auth: {
+      storage: {
+        getItem: (key) => SecureStore.getItemAsync(key),
+        setItem: (key, value) => SecureStore.setItemAsync(key, value),
+        removeItem: (key) => SecureStore.deleteItemAsync(key),
+      },
+      autoRefreshToken: true,    // ← token odświeżany automatycznie
+      persistSession: true,
+      detectSessionInUrl: false, // ← mobile nie używa URL sessions
+    },
+  }
+);
+```
+
+**Zakazy auth mobile:**
+- ❌ `AsyncStorage` jako storage adapter — nieszyfrowany, użyj `expo-secure-store`
+- ❌ Ręczne przechowywanie tokenów poza Supabase SDK
+- ❌ `detectSessionInUrl: true` w mobile
+- ❌ Bezpośrednie wywołania Supabase poza `lib/supabase.ts`
+
+### 15.4 Wzorzec hookowy (TanStack Query)
+
+Każdy moduł mobilny eksportuje hooki zamiast funkcji fetch:
+
+```typescript
+// apps/mobile/modules/subscriptions/useSubscriptions.ts
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useApi } from '@/lib/api';
+import type { Subscription, CreateSubscriptionDto } from '@ownhome/types';
+
+export function useSubscriptions() {
+  const api = useApi();
+  return useQuery({
+    queryKey: ['subscriptions'],
+    queryFn: () => api.get<Subscription[]>('/api/subscriptions'),
+    select: (res) => res.data ?? [],
+  });
+}
+
+export function useCreateSubscription() {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateSubscriptionDto) =>
+      api.post<Subscription>('/api/subscriptions', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
+    },
+  });
+}
+```
+
+### 15.5 Nawigacja (Expo Router)
+
+Struktura plików w `apps/mobile/app/` mapuje się 1:1 na URL (jak Next.js):
+
+```
+app/
+├── _layout.tsx          ← root layout: auth guard + QueryClientProvider
+├── (auth)/
+│   └── login.tsx
+└── (tabs)/
+    ├── _layout.tsx      ← bottom tab bar (5 zakładek)
+    ├── budget/
+    │   ├── index.tsx    ← lista transakcji + summary
+    │   └── [id].tsx     ← szczegół okresu
+    ├── vehicles/
+    │   ├── index.tsx
+    │   └── [id]/
+    │       ├── index.tsx
+    │       ├── insurance.tsx
+    │       ├── inspections.tsx
+    │       └── service.tsx
+    ├── subscriptions/index.tsx
+    ├── obligations/index.tsx
+    └── profile/index.tsx
+```
+
+### 15.6 Push notifications — flow
+
+```
+Przy starcie apki:
+  expo-notifications.getExpoPushTokenAsync()
+  → POST /api/profile/push-token { token }
+  → Zapisz w UserProfile.expoPushToken
+
+Cron worker (Vercel lub Supabase Edge Function):
+  SELECT * FROM ScheduledEvent WHERE processedAt IS NULL AND scheduledAt <= now()
+  → POST https://exp.host/--/api/v2/push/send { to: expoPushToken, ... }
+  → UPDATE ScheduledEvent SET processedAt = now()
+```
+
+### 15.7 Upload plików
+
+Pliki uploadowane bezpośrednio do Supabase Storage z mobile, URL zapisywany przez API:
+
+```typescript
+// 1. Wybierz plik
+const result = await ImagePicker.launchImageLibraryAsync({ ... });
+
+// 2. Upload bezpośrednio do Supabase Storage (bez pośrednictwa API)
+const { data } = await supabase.storage
+  .from('vehicle-files')
+  .upload(`${userId}/${vehicleId}/${filename}`, file);
+
+// 3. Zapisz URL przez API (zachowuje architekturę API-first)
+await api.post(`/api/vehicles/${vehicleId}/files`, { fileUrl: data.path });
+```
+
+### 15.8 Testowanie mobile
+
+| Środowisko | Jak uruchomić | Kiedy używać |
+|------------|---------------|--------------|
+| Expo Go (telefon) | `npx expo start` → skan QR | Szybki dev, bez custom native modules |
+| Android Emulator | Android Studio → AVD → `press a` | Dev z większym ekranem, DevTools |
+| EAS Build (APK) | `eas build --platform android --profile preview` | Push notifications, production build |
+| iOS | Wymaga Apple Developer ($99/rok) + macOS lub EAS Build | Produkcja iOS |
+
+---
+
+*Koniec CLAUDE.md — wersja 1.1*
 *Każda zmiana w tym pliku wymaga świadomej decyzji i jest traktowana jako zmiana architektoniczna.*
