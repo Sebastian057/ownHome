@@ -84,7 +84,7 @@ model BudgetCategory {
 
 model BudgetTemplate {
   id        String   @id @default(cuid())
-  userId    String   @unique
+  userId    String
   currency  String   @default("PLN")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -146,9 +146,9 @@ model BudgetPeriod {
   categoryPlans BudgetCategoryPlan[]
   transactions  Transaction[]
 
-  @@unique([userId, year, month])
+  @@unique([year, month])
   @@index([userId])
-  @@index([userId, year, month])
+  @@index([year, month])
   @@map("budget_periods")
 }
 
@@ -317,9 +317,9 @@ model Vehicle {
   maintenanceLogs  VehicleMaintenanceLog[]
   serviceVisitFiles VehicleServiceVisitFile[]
 
-  @@unique([userId, slug])
+  @@unique([slug])
   @@index([userId])
-  @@index([userId, deletedAt])
+  @@index([deletedAt])
   @@map("vehicles")
 }
 

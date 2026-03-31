@@ -7,14 +7,14 @@ export const obligationRepository = {
 
   async getMany(userId: string) {
     return prisma.recurringTemplate.findMany({
-      where: { userId, deletedAt: null },
+      where: { deletedAt: null },
       orderBy: { billingDay: 'asc' },
     })
   },
 
   async getById(id: string, userId: string) {
     return prisma.recurringTemplate.findFirst({
-      where: { id, userId, deletedAt: null },
+      where: { id, deletedAt: null },
     })
   },
 
@@ -45,16 +45,16 @@ export const obligationRepository = {
     if (data.isActive !== undefined) updateData.isActive = data.isActive
 
     const rows = await prisma.recurringTemplate.updateMany({
-      where: { id, userId, deletedAt: null },
+      where: { id, deletedAt: null },
       data: updateData,
     })
     if (rows.count === 0) return null
-    return prisma.recurringTemplate.findFirst({ where: { id, userId } })
+    return prisma.recurringTemplate.findFirst({ where: { id } })
   },
 
   async softDelete(id: string, userId: string) {
     return prisma.recurringTemplate.updateMany({
-      where: { id, userId, deletedAt: null },
+      where: { id, deletedAt: null },
       data: { deletedAt: new Date(), isActive: false },
     })
   },
@@ -62,17 +62,17 @@ export const obligationRepository = {
   // Used by budget.service during period creation
   async getActiveForPeriod(userId: string) {
     return prisma.recurringTemplate.findMany({
-      where: { userId, deletedAt: null, isActive: true },
+      where: { deletedAt: null, isActive: true },
       orderBy: { billingDay: 'asc' },
     })
   },
 
   // ─── Recurring Payments ───────────────────────────────────────────────────
 
-  // Returns all payments for a given year/month for this user
+  // Returns all payments for a given year/month
   async getPaymentsForMonth(userId: string, year: number, month: number) {
     return prisma.recurringPayment.findMany({
-      where: { userId, year, month },
+      where: { year, month },
       include: { template: { select: { name: true, category: true, defaultAmount: true, billingDay: true, billingCycle: true } } },
       orderBy: { dueDate: 'asc' },
     })
@@ -81,7 +81,7 @@ export const obligationRepository = {
   // Find single payment for a template in a specific month
   async getPaymentForMonth(templateId: string, userId: string, year: number, month: number) {
     return prisma.recurringPayment.findFirst({
-      where: { templateId, userId, year, month },
+      where: { templateId, year, month },
       include: { template: { select: { name: true, category: true, defaultAmount: true, billingDay: true, billingCycle: true, currency: true } } },
     })
   },
@@ -89,7 +89,7 @@ export const obligationRepository = {
   // Backward-compatible: find by templateId + periodId (for budget.service createPeriod)
   async getPaymentByTemplateAndPeriod(templateId: string, periodId: string, userId: string) {
     return prisma.recurringPayment.findFirst({
-      where: { templateId, periodId, userId },
+      where: { templateId, periodId },
       include: { template: { select: { name: true, category: true, defaultAmount: true } } },
     })
   },
@@ -129,13 +129,12 @@ export const obligationRepository = {
     amount: number | Prisma.Decimal
     status: RecurringStatus
   }>) {
-    // Use upsert via $transaction to avoid unique constraint violations
     return prisma.$transaction(
       items.map(item =>
         prisma.recurringPayment.upsert({
           where: { templateId_year_month: { templateId: item.templateId, year: item.year, month: item.month } },
           create: item,
-          update: { periodId: item.periodId }, // Link to period if payment was already created standalone
+          update: { periodId: item.periodId },
         })
       )
     )
@@ -153,14 +152,14 @@ export const obligationRepository = {
     }
   ) {
     return prisma.recurringPayment.updateMany({
-      where: { id, userId },
+      where: { id },
       data: update,
     })
   },
 
   async skipPayment(id: string, userId: string) {
     return prisma.recurringPayment.updateMany({
-      where: { id, userId },
+      where: { id },
       data: { status: 'SKIPPED' },
     })
   },
@@ -168,7 +167,7 @@ export const obligationRepository = {
   // Revert confirmed payment back to PENDING with default amount
   async unconfirmPayment(id: string, userId: string, defaultAmount: number) {
     return prisma.recurringPayment.updateMany({
-      where: { id, userId },
+      where: { id },
       data: {
         status: 'PENDING',
         confirmedAt: null,
@@ -182,7 +181,7 @@ export const obligationRepository = {
   // Legacy: list by periodId (used by budget module)
   async listByPeriodId(periodId: string, userId: string) {
     return prisma.recurringPayment.findMany({
-      where: { periodId, userId },
+      where: { periodId },
       include: { template: { select: { name: true, category: true } } },
       orderBy: { dueDate: 'asc' },
     })

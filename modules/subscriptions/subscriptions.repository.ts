@@ -6,7 +6,6 @@ export const subscriptionRepository = {
   async getMany(userId: string, filters: { active?: boolean; upcomingDays?: number }) {
     const now = new Date()
     const where: import('@prisma/client').Prisma.SubscriptionWhereInput = {
-      userId,
       deletedAt: null,
     }
 
@@ -25,7 +24,7 @@ export const subscriptionRepository = {
 
   async getById(id: string, userId: string) {
     return prisma.subscription.findFirst({
-      where: { id, userId, deletedAt: null },
+      where: { id, deletedAt: null },
     })
   },
 
@@ -60,16 +59,16 @@ export const subscriptionRepository = {
     if (data.isActive !== undefined) updateData.isActive = data.isActive
 
     const rows = await prisma.subscription.updateMany({
-      where: { id, userId, deletedAt: null },
+      where: { id, deletedAt: null },
       data: updateData,
     })
     if (rows.count === 0) return null
-    return prisma.subscription.findFirst({ where: { id, userId } })
+    return prisma.subscription.findFirst({ where: { id } })
   },
 
   async softDelete(id: string, userId: string) {
     return prisma.subscription.updateMany({
-      where: { id, userId, deletedAt: null },
+      where: { id, deletedAt: null },
       data: { deletedAt: new Date(), isActive: false },
     })
   },
@@ -78,7 +77,6 @@ export const subscriptionRepository = {
   async getActiveForPeriod(userId: string, periodStart: Date, periodEnd: Date) {
     return prisma.subscription.findMany({
       where: {
-        userId,
         deletedAt: null,
         isActive: true,
         nextBillingDate: { gte: periodStart, lte: periodEnd },
@@ -88,7 +86,7 @@ export const subscriptionRepository = {
 
   async updateNextBillingDate(id: string, userId: string, nextDate: Date) {
     return prisma.subscription.updateMany({
-      where: { id, userId },
+      where: { id },
       data: { nextBillingDate: nextDate },
     })
   },
@@ -97,7 +95,6 @@ export const subscriptionRepository = {
   async getDueSubscriptions(userId: string, asOf: Date) {
     return prisma.subscription.findMany({
       where: {
-        userId,
         deletedAt: null,
         isActive: true,
         nextBillingDate: { lte: asOf },

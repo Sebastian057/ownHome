@@ -17,7 +17,7 @@ import type { MaintenanceItemType, Prisma } from '@prisma/client'
 export const vehicleRepository = {
   async getMany(userId: string) {
     return prisma.vehicle.findMany({
-      where: { userId, deletedAt: null },
+      where: { deletedAt: null },
       orderBy: { createdAt: 'desc' },
       include: {
         insurances: {
@@ -36,19 +36,19 @@ export const vehicleRepository = {
 
   async getById(id: string, userId: string) {
     return prisma.vehicle.findFirst({
-      where: { id, userId, deletedAt: null },
+      where: { id, deletedAt: null },
     })
   },
 
   async getBySlug(slug: string, userId: string) {
     return prisma.vehicle.findFirst({
-      where: { slug, userId, deletedAt: null },
+      where: { slug, deletedAt: null },
     })
   },
 
   async getBySlugFull(slug: string, userId: string) {
     return prisma.vehicle.findFirst({
-      where: { slug, userId, deletedAt: null },
+      where: { slug, deletedAt: null },
       include: {
         insurances: {
           where: { deletedAt: null },
@@ -75,7 +75,7 @@ export const vehicleRepository = {
 
   async getByIdFull(id: string, userId: string) {
     return prisma.vehicle.findFirst({
-      where: { id, userId, deletedAt: null },
+      where: { id, deletedAt: null },
       include: {
         insurances: {
           where: { deletedAt: null },
@@ -126,23 +126,23 @@ export const vehicleRepository = {
 
   async update(id: string, userId: string, data: UpdateVehicleDto) {
     const rows = await prisma.vehicle.updateMany({
-      where: { id, userId, deletedAt: null },
+      where: { id, deletedAt: null },
       data,
     })
     if (rows.count === 0) return null
-    return prisma.vehicle.findFirst({ where: { id, userId } })
+    return prisma.vehicle.findFirst({ where: { id } })
   },
 
   async updateMileage(id: string, userId: string, mileage: number) {
     return prisma.vehicle.updateMany({
-      where: { id, userId, deletedAt: null },
+      where: { id, deletedAt: null },
       data: { mileage },
     })
   },
 
   async softDelete(id: string, userId: string) {
     return prisma.vehicle.updateMany({
-      where: { id, userId, deletedAt: null },
+      where: { id, deletedAt: null },
       data: { deletedAt: new Date() },
     })
   },
@@ -153,14 +153,14 @@ export const vehicleRepository = {
 export const insuranceRepository = {
   async getMany(vehicleId: string, userId: string) {
     return prisma.vehicleInsurance.findMany({
-      where: { vehicleId, userId, deletedAt: null },
+      where: { vehicleId, deletedAt: null },
       orderBy: { endDate: 'desc' },
     })
   },
 
   async getById(id: string, vehicleId: string, userId: string) {
     return prisma.vehicleInsurance.findFirst({
-      where: { id, vehicleId, userId, deletedAt: null },
+      where: { id, vehicleId, deletedAt: null },
     })
   },
 
@@ -188,16 +188,16 @@ export const insuranceRepository = {
 
   async update(id: string, vehicleId: string, userId: string, data: UpdateInsuranceDto) {
     const rows = await prisma.vehicleInsurance.updateMany({
-      where: { id, vehicleId, userId, deletedAt: null },
+      where: { id, vehicleId, deletedAt: null },
       data,
     })
     if (rows.count === 0) return null
-    return prisma.vehicleInsurance.findFirst({ where: { id, userId } })
+    return prisma.vehicleInsurance.findFirst({ where: { id } })
   },
 
   async softDelete(id: string, vehicleId: string, userId: string) {
     return prisma.vehicleInsurance.updateMany({
-      where: { id, vehicleId, userId, deletedAt: null },
+      where: { id, vehicleId, deletedAt: null },
       data: { deletedAt: new Date() },
     })
   },
@@ -205,7 +205,6 @@ export const insuranceRepository = {
   async getExpiringBefore(date: Date, userId: string) {
     return prisma.vehicleInsurance.findMany({
       where: {
-        userId,
         deletedAt: null,
         endDate: { lte: date },
       },
@@ -219,14 +218,14 @@ export const insuranceRepository = {
 export const inspectionRepository = {
   async getMany(vehicleId: string, userId: string) {
     return prisma.vehicleInspection.findMany({
-      where: { vehicleId, userId, deletedAt: null },
+      where: { vehicleId, deletedAt: null },
       orderBy: { date: 'desc' },
     })
   },
 
   async getById(id: string, vehicleId: string, userId: string) {
     return prisma.vehicleInspection.findFirst({
-      where: { id, vehicleId, userId, deletedAt: null },
+      where: { id, vehicleId, deletedAt: null },
     })
   },
 
@@ -253,16 +252,16 @@ export const inspectionRepository = {
 
   async update(id: string, vehicleId: string, userId: string, data: UpdateInspectionDto) {
     const rows = await prisma.vehicleInspection.updateMany({
-      where: { id, vehicleId, userId, deletedAt: null },
+      where: { id, vehicleId, deletedAt: null },
       data,
     })
     if (rows.count === 0) return null
-    return prisma.vehicleInspection.findFirst({ where: { id, userId } })
+    return prisma.vehicleInspection.findFirst({ where: { id } })
   },
 
   async softDelete(id: string, vehicleId: string, userId: string) {
     return prisma.vehicleInspection.updateMany({
-      where: { id, vehicleId, userId, deletedAt: null },
+      where: { id, vehicleId, deletedAt: null },
       data: { deletedAt: new Date() },
     })
   },
@@ -273,7 +272,7 @@ export const inspectionRepository = {
 export const serviceVisitRepository = {
   async getMany(vehicleId: string, userId: string, cursor?: string, limit = 20) {
     return prisma.vehicleServiceVisit.findMany({
-      where: { vehicleId, userId, deletedAt: null },
+      where: { vehicleId, deletedAt: null },
       orderBy: { date: 'desc' },
       take: limit + 1,
       ...(cursor && { cursor: { id: cursor }, skip: 1 }),
@@ -285,7 +284,7 @@ export const serviceVisitRepository = {
 
   async getById(id: string, vehicleId: string, userId: string) {
     return prisma.vehicleServiceVisit.findFirst({
-      where: { id, vehicleId, userId, deletedAt: null },
+      where: { id, vehicleId, deletedAt: null },
     })
   },
 
@@ -314,33 +313,33 @@ export const serviceVisitRepository = {
 
   async update(id: string, vehicleId: string, userId: string, data: UpdateServiceVisitDto) {
     const rows = await prisma.vehicleServiceVisit.updateMany({
-      where: { id, vehicleId, userId, deletedAt: null },
+      where: { id, vehicleId, deletedAt: null },
       data,
     })
     if (rows.count === 0) return null
     return prisma.vehicleServiceVisit.findFirst({
-      where: { id, userId },
+      where: { id },
       include: { files: { orderBy: { createdAt: 'asc' } } },
     })
   },
 
   async saveAiSuggestions(id: string, userId: string, suggestions: Prisma.InputJsonValue) {
     return prisma.vehicleServiceVisit.updateMany({
-      where: { id, userId },
+      where: { id },
       data: { aiSuggestions: suggestions },
     })
   },
 
   async markAiApplied(id: string, userId: string) {
     return prisma.vehicleServiceVisit.updateMany({
-      where: { id, userId },
+      where: { id },
       data: { aiAppliedAt: new Date() },
     })
   },
 
   async softDelete(id: string, vehicleId: string, userId: string) {
     return prisma.vehicleServiceVisit.updateMany({
-      where: { id, vehicleId, userId, deletedAt: null },
+      where: { id, vehicleId, deletedAt: null },
       data: { deletedAt: new Date() },
     })
   },
@@ -351,7 +350,7 @@ export const serviceVisitRepository = {
 export const serviceVisitFileRepository = {
   async getByVisitId(visitId: string, userId: string) {
     return prisma.vehicleServiceVisitFile.findMany({
-      where: { visitId, userId },
+      where: { visitId },
       orderBy: { createdAt: 'asc' },
     })
   },
@@ -370,11 +369,11 @@ export const serviceVisitFileRepository = {
   },
 
   async getById(id: string, userId: string) {
-    return prisma.vehicleServiceVisitFile.findFirst({ where: { id, userId } })
+    return prisma.vehicleServiceVisitFile.findFirst({ where: { id } })
   },
 
   async delete(id: string, userId: string) {
-    return prisma.vehicleServiceVisitFile.deleteMany({ where: { id, userId } })
+    return prisma.vehicleServiceVisitFile.deleteMany({ where: { id } })
   },
 }
 
@@ -383,20 +382,20 @@ export const serviceVisitFileRepository = {
 export const maintenanceRepository = {
   async getMany(vehicleId: string, userId: string) {
     return prisma.vehicleMaintenanceItem.findMany({
-      where: { vehicleId, userId },
+      where: { vehicleId },
       orderBy: { type: 'asc' },
     })
   },
 
   async getById(id: string, vehicleId: string, userId: string) {
     return prisma.vehicleMaintenanceItem.findFirst({
-      where: { id, vehicleId, userId },
+      where: { id, vehicleId },
     })
   },
 
   async getByType(vehicleId: string, userId: string, type: MaintenanceItemType) {
     return prisma.vehicleMaintenanceItem.findFirst({
-      where: { vehicleId, userId, type },
+      where: { vehicleId, type },
     })
   },
 
@@ -408,11 +407,11 @@ export const maintenanceRepository = {
 
   async update(id: string, vehicleId: string, userId: string, data: UpdateMaintenanceItemDto) {
     const rows = await prisma.vehicleMaintenanceItem.updateMany({
-      where: { id, vehicleId, userId },
+      where: { id, vehicleId },
       data,
     })
     if (rows.count === 0) return null
-    return prisma.vehicleMaintenanceItem.findFirst({ where: { id, userId } })
+    return prisma.vehicleMaintenanceItem.findFirst({ where: { id } })
   },
 
   async batchUpdate(
@@ -428,7 +427,7 @@ export const maintenanceRepository = {
     return prisma.$transaction(
       updates.map((u) =>
         prisma.vehicleMaintenanceItem.updateMany({
-          where: { vehicleId: u.vehicleId, userId: u.userId, type: u.type },
+          where: { vehicleId: u.vehicleId, type: u.type },
           data: {
             lastServiceDate: u.lastServiceDate,
             lastServiceMileage: u.lastServiceMileage,
@@ -445,14 +444,14 @@ export const maintenanceRepository = {
 export const maintenanceLogRepository = {
   async getMany(vehicleId: string, userId: string) {
     return prisma.vehicleMaintenanceLog.findMany({
-      where: { vehicleId, userId, deletedAt: null },
+      where: { vehicleId, deletedAt: null },
       orderBy: { date: 'desc' },
     })
   },
 
   async getById(id: string, userId: string) {
     return prisma.vehicleMaintenanceLog.findFirst({
-      where: { id, userId, deletedAt: null },
+      where: { id, deletedAt: null },
     })
   },
 
@@ -483,12 +482,12 @@ export const maintenanceLogRepository = {
       notes: string | null
     }>
   ) {
-    return prisma.vehicleMaintenanceLog.updateMany({ where: { id, userId }, data })
+    return prisma.vehicleMaintenanceLog.updateMany({ where: { id }, data })
   },
 
   async softDelete(id: string, userId: string) {
     return prisma.vehicleMaintenanceLog.updateMany({
-      where: { id, userId },
+      where: { id },
       data: { deletedAt: new Date() },
     })
   },
