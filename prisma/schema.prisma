@@ -8,6 +8,24 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+// user_profiles jest rozszerzeniem Supabase Auth (auth.users).
+// fullName i email są przechowywane w auth.users.raw_user_meta_data / auth.users.email.
+// Ten model przechowuje TYLKO dane aplikacji: rola, motyw, język, telefon, avatar.
+model UserProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique @map("user_id")
+  avatarUrl String?  @map("avatar_url") @db.VarChar(500)
+  phone     String?  @db.VarChar(20)
+  language  String   @default("pl") @db.Char(2)
+  theme     String   @default("light") @db.VarChar(10)
+  role      String   @default("user") @db.VarChar(10)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("user_profiles")
+}
+
 model ScheduledEvent {
   id          String    @id @default(cuid())
   userId      String
@@ -21,4 +39,475 @@ model ScheduledEvent {
 
   @@index([userId, scheduledAt, processedAt])
   @@map("scheduled_events")
+}
+
+// ─── ENUMS ────────────────────────────────────────────────────────────────────
+
+enum TransactionSource {
+  MANUAL
+  SUBSCRIPTION
+  RECURRING
+}
+
+enum BillingCycle {
+  WEEKLY
+  MONTHLY
+  BIMONTHLY   // co 2 miesiące (np. prąd, gaz)
+  QUARTERLY
+  YEARLY
+}
+
+enum RecurringStatus {
+  PENDING
+  CONFIRMED
+  SKIPPED
+}
+
+// ─── BUDGET CATEGORIES (globalne — bez userId) ────────────────────────────────
+
+model BudgetCategory {
+  id        String   @id @default(cuid())
+  slug      String   @unique @db.VarChar(50)
+  label     String   @db.VarChar(100)
+  color     String   @default("#6b7280") @db.VarChar(7)
+  isSystem  Boolean  @default(true)
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+  @@map("budget_categories")
+}
+
+// ─── BUDGET TEMPLATE ─────────────────────────────────────────────────────────
+
+model BudgetTemplate {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  currency  String   @default("PLN")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  incomes  BudgetTemplateIncome[]
+  expenses BudgetTemplateExpense[]
+
+  @@index([userId])
+  @@map("budget_templates")
+}
+
+model BudgetTemplateIncome {
+  id         String         @id @default(cuid())
+  templateId String
+  template   BudgetTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  userId     String
+  title      String         @db.VarChar(200)
+  amount     Decimal        @db.Decimal(12, 2)
+  sortOrder  Int            @default(0)
+  createdAt  DateTime       @default(now())
+
+  @@index([templateId])
+  @@index([userId])
+  @@map("budget_template_incomes")
+}
+
+model BudgetTemplateExpense {
+  id         String         @id @default(cuid())
+  templateId String
+  template   BudgetTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  userId     String
+  category   String         @db.VarChar(50)
+  amount     Decimal        @db.Decimal(12, 2)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  @@unique([templateId, category])
+  @@index([templateId])
+  @@index([userId])
+  @@map("budget_template_expenses")
+}
+
+// ─── BUDGET PERIOD (miesiąc) ──────────────────────────────────────────────────
+
+model BudgetPeriod {
+  id              String    @id @default(cuid())
+  userId          String
+  year            Int
+  month           Int
+  currency        String    @default("PLN")
+  carryOverAmount Decimal   @default(0) @db.Decimal(12, 2)
+  openingBalance  Decimal?  @map("opening_balance") @db.Decimal(12, 2)
+  closingBalance  Decimal?  @map("closing_balance") @db.Decimal(12, 2)
+  closedAt        DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  incomes       BudgetIncome[]
+  categoryPlans BudgetCategoryPlan[]
+  transactions  Transaction[]
+
+  @@unique([userId, year, month])
+  @@index([userId])
+  @@index([userId, year, month])
+  @@map("budget_periods")
+}
+
+model BudgetIncome {
+  id        String       @id @default(cuid())
+  periodId  String
+  period    BudgetPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  userId    String
+  title     String       @db.VarChar(200)
+  planned   Decimal      @db.Decimal(12, 2)
+  actual    Decimal?     @db.Decimal(12, 2)
+  sortOrder Int          @default(0)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([periodId])
+  @@index([userId])
+  @@map("budget_incomes")
+}
+
+model BudgetCategoryPlan {
+  id        String       @id @default(cuid())
+  periodId  String
+  period    BudgetPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  userId    String
+  category  String       @db.VarChar(50)
+  planned   Decimal      @db.Decimal(12, 2)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@unique([periodId, category])
+  @@index([periodId])
+  @@index([userId])
+  @@map("budget_category_plans")
+}
+
+// ─── TRANSACTION ─────────────────────────────────────────────────────────────
+
+model Transaction {
+  id        String            @id @default(cuid())
+  periodId  String
+  period    BudgetPeriod      @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  userId    String
+  date      DateTime          @db.Date
+  title     String            @db.VarChar(300)
+  amount    Decimal           @db.Decimal(12, 2)
+  category  String            @db.VarChar(50)
+  source    TransactionSource @default(MANUAL)
+  sourceId  String?
+  tags      String[]          @default([])
+  deletedAt DateTime?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@index([periodId])
+  @@index([userId])
+  @@index([userId, date])
+  @@index([userId, deletedAt])
+  @@index([userId, category])
+  @@map("transactions")
+}
+
+// ─── SUBSCRIPTION ────────────────────────────────────────────────────────────
+
+model Subscription {
+  id              String       @id @default(cuid())
+  userId          String
+  name            String       @db.VarChar(200)
+  amount          Decimal      @db.Decimal(12, 2)
+  currency        String       @default("PLN")
+  category        String       @default("rachunki") @db.VarChar(50)
+  billingCycle    BillingCycle
+  billingDay      Int
+  nextBillingDate DateTime     @db.Date
+  isActive        Boolean      @default(true)
+  trialEndsAt     DateTime?    @db.Date
+  notes           String?      @db.VarChar(500)
+  deletedAt       DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([userId, isActive])
+  @@index([userId, nextBillingDate])
+  @@index([userId, deletedAt])
+  @@map("subscriptions")
+}
+
+// ─── VEHICLES ─────────────────────────────────────────────────────────────────
+
+enum FuelType {
+  petrol
+  diesel
+  lpg
+  electric
+  hybrid
+  hydrogen
+}
+
+enum TransmissionType {
+  manual
+  automatic
+  semi_automatic
+  cvt
+}
+
+
+enum InspectionResult {
+  passed
+  passed_with_defects
+  failed
+}
+
+enum MaintenanceItemType {
+  oil_change
+  timing_belt
+  timing_chain
+  brakes_front
+  brakes_rear
+  brake_fluid
+  gearbox_oil
+  coolant
+  spark_plugs
+  glow_plugs
+  air_filter
+  cabin_filter
+  fuel_filter
+  power_steering_fluid
+  battery
+  tires_summer
+  tires_winter
+  tires_all_season
+  clutch
+  suspension_front
+  suspension_rear
+  other
+}
+
+model Vehicle {
+  id                 String             @id @default(cuid())
+  userId             String             @map("user_id")
+  name               String             @db.VarChar(100)
+  slug               String             @db.VarChar(120)
+  licensePlate       String             @map("license_plate") @db.VarChar(20)
+  photoUrl           String?            @map("photo_url") @db.VarChar(500)
+  vin                String?            @db.VarChar(17)
+  make               String?            @db.VarChar(100)
+  model              String?            @db.VarChar(100)
+  year               Int?
+  color              String?            @db.VarChar(50)
+  engineType         String?            @map("engine_type") @db.VarChar(50)
+  engineCapacity     String?            @map("engine_capacity") @db.VarChar(20)
+  fuelType           FuelType?          @map("fuel_type")
+  transmissionType   TransmissionType?  @map("transmission_type")
+  bodyType           String?            @map("body_type") @db.VarChar(50)
+  mileage            Int                @default(0)
+  registrationExpiry DateTime?          @map("registration_expiry")
+  deletedAt          DateTime?          @map("deleted_at")
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+
+  insurances       VehicleInsurance[]
+  inspections      VehicleInspection[]
+  serviceVisits    VehicleServiceVisit[]
+  maintenanceItems VehicleMaintenanceItem[]
+  maintenanceLogs  VehicleMaintenanceLog[]
+  serviceVisitFiles VehicleServiceVisitFile[]
+
+  @@unique([userId, slug])
+  @@index([userId])
+  @@index([userId, deletedAt])
+  @@map("vehicles")
+}
+
+model VehicleInsurance {
+  id            String        @id @default(cuid())
+  vehicleId     String        @map("vehicle_id")
+  userId        String        @map("user_id")
+  provider      String        @db.VarChar(200)
+  policyNumber  String?       @map("policy_number") @db.VarChar(100)
+  types         String[]      @default([]) @map("types")
+  amount        Decimal       @db.Decimal(10, 2)
+  currency      String        @default("PLN") @db.Char(3)
+  startDate     DateTime      @map("start_date")
+  endDate       DateTime      @map("end_date")
+  transactionId String?       @map("transaction_id")
+  notes         String?       @db.VarChar(2000)
+  deletedAt     DateTime?     @map("deleted_at")
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+
+  @@index([vehicleId])
+  @@index([userId, endDate])
+  @@index([userId, deletedAt])
+  @@map("vehicle_insurances")
+}
+
+model VehicleInspection {
+  id               String           @id @default(cuid())
+  vehicleId        String           @map("vehicle_id")
+  userId           String           @map("user_id")
+  date             DateTime
+  nextDate         DateTime?        @map("next_date")
+  mileageAtService Int?             @map("mileage_at_service")
+  result           InspectionResult
+  stationName      String?          @map("station_name") @db.VarChar(300)
+  cost             Decimal?         @db.Decimal(10, 2)
+  currency         String           @default("PLN") @db.Char(3)
+  transactionId    String?          @map("transaction_id")
+  notes            String?          @db.VarChar(2000)
+  deletedAt        DateTime?        @map("deleted_at")
+  createdAt        DateTime         @default(now()) @map("created_at")
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+
+  @@index([vehicleId])
+  @@index([userId, nextDate])
+  @@index([userId, deletedAt])
+  @@map("vehicle_inspections")
+}
+
+model VehicleServiceVisit {
+  id               String    @id @default(cuid())
+  vehicleId        String    @map("vehicle_id")
+  userId           String    @map("user_id")
+  date             DateTime
+  shopName         String?   @map("shop_name") @db.VarChar(200)
+  mileageAtService Int?      @map("mileage_at_service")
+  totalCost        Decimal?  @map("total_cost") @db.Decimal(10, 2)
+  currency         String    @default("PLN") @db.Char(3)
+  transactionId    String?   @map("transaction_id")
+  notes            String?   @db.VarChar(5000)
+  aiSuggestions    Json?     @map("ai_suggestions")
+  aiAppliedAt      DateTime? @map("ai_applied_at")
+  deletedAt        DateTime? @map("deleted_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  vehicle            Vehicle                  @relation(fields: [vehicleId], references: [id])
+  maintenanceUpdates VehicleMaintenanceItem[]
+  files              VehicleServiceVisitFile[]
+
+  @@index([vehicleId])
+  @@index([userId, date])
+  @@index([userId, deletedAt])
+  @@map("vehicle_service_visits")
+}
+
+model VehicleMaintenanceItem {
+  id                 String              @id @default(cuid())
+  vehicleId          String              @map("vehicle_id")
+  userId             String              @map("user_id")
+  type               MaintenanceItemType
+  lastServiceDate    DateTime?           @map("last_service_date")
+  lastServiceMileage Int?                @map("last_service_mileage")
+  nextServiceDate    DateTime?           @map("next_service_date")
+  nextServiceMileage Int?                @map("next_service_mileage")
+  notes              String?             @db.VarChar(2000)
+  updatedByVisitId   String?             @map("updated_by_visit_id")
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+
+  vehicle        Vehicle              @relation(fields: [vehicleId], references: [id])
+  updatedByVisit VehicleServiceVisit? @relation(fields: [updatedByVisitId], references: [id])
+
+  @@unique([vehicleId, type])
+  @@index([vehicleId])
+  @@index([userId])
+  @@map("vehicle_maintenance_items")
+}
+
+model VehicleServiceVisitFile {
+  id        String              @id @default(cuid())
+  visitId   String              @map("visit_id")
+  vehicleId String              @map("vehicle_id")
+  userId    String              @map("user_id")
+  fileName  String              @map("file_name") @db.VarChar(500)
+  fileUrl   String              @map("file_url") @db.VarChar(1000)
+  fileType  String              @map("file_type") @db.VarChar(20)
+  mimeType  String              @map("mime_type") @db.VarChar(100)
+  sizeBytes Int                 @map("size_bytes")
+  createdAt DateTime            @default(now()) @map("created_at")
+
+  visit   VehicleServiceVisit @relation(fields: [visitId], references: [id])
+  vehicle Vehicle             @relation(fields: [vehicleId], references: [id])
+
+  @@index([visitId])
+  @@index([userId])
+  @@map("vehicle_service_visit_files")
+}
+
+model VehicleMaintenanceLog {
+  id        String    @id @default(cuid())
+  vehicleId String    @map("vehicle_id")
+  userId    String    @map("user_id")
+  category  String    @db.VarChar(100)
+  label     String?   @db.VarChar(200)
+  date      DateTime  @db.Date
+  mileage   Int?
+  cost      Decimal?  @db.Decimal(10, 2)
+  currency  String    @default("PLN") @db.Char(3)
+  notes     String?   @db.VarChar(2000)
+  deletedAt DateTime? @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+
+  @@index([vehicleId])
+  @@index([userId])
+  @@index([userId, deletedAt])
+  @@map("vehicle_maintenance_logs")
+}
+
+// ─── RECURRING TEMPLATE (płatności cykliczne) ─────────────────────────────────
+
+model RecurringTemplate {
+  id            String       @id @default(cuid())
+  userId        String
+  name          String       @db.VarChar(200)
+  defaultAmount Decimal      @db.Decimal(12, 2)
+  currency      String       @default("PLN")
+  category      String       @db.VarChar(50)
+  billingCycle  BillingCycle @default(MONTHLY)
+  billingDay    Int
+  isActive      Boolean      @default(true)
+  notes         String?      @db.VarChar(500)
+  deletedAt     DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  payments RecurringPayment[]
+
+  @@index([userId])
+  @@index([userId, isActive])
+  @@index([userId, deletedAt])
+  @@map("recurring_templates")
+}
+
+model RecurringPayment {
+  id            String            @id @default(cuid())
+  templateId    String
+  template      RecurringTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  userId        String
+  year          Int               // rok płatności (np. 2026)
+  month         Int               // miesiąc płatności (1-12)
+  periodId      String?           // opcjonalne — powiązanie z BudgetPeriod (wypełniane przy potwierdzeniu)
+  dueDate       DateTime          @db.Date
+  amount        Decimal           @db.Decimal(12, 2)
+  status        RecurringStatus   @default(PENDING)
+  confirmedAt   DateTime?
+  transactionId String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@unique([templateId, year, month])   // jedna płatność per szablon per miesiąc
+  @@index([templateId])
+  @@index([userId])
+  @@index([userId, status])
+  @@index([userId, year, month])
+  @@map("recurring_payments")
 }

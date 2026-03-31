@@ -11,7 +11,7 @@
 OwnHome to prywatna aplikacja webowa typu "personal life manager" — system do zarządzania finansami, czasem, majątkiem i zobowiązaniami w jednym spójnym ekosystemie.
 
 **Stack:**
-- Frontend: Next.js (App Router) + TypeScript + Tailwind CSS + shadcn/ui
+- Frontend: Next.js (App Router) + TypeScript + Tailwind CSS v4 + shadcn/ui (styl: nova, primitives: Radix UI)
 - Backend: Next.js Route Handlers (REST API)
 - ORM: Prisma
 - Baza danych: PostgreSQL przez Supabase
@@ -67,7 +67,50 @@ Każdy moduł **musi** zawierać dokładnie te pliki w tej kolejności:
   module.repository.ts  ← 3. Dostęp do Prisma (jedyne miejsce)
   module.service.ts     ← 4. Logika biznesowa + ownership checks + eventy
   module.api.ts         ← 5. Route Handler: auth → validate → service → response
-  module.ui.tsx         ← 6. Komponenty React (shadcn, stateless/dumb)
+  module.ui.tsx         ← 6. Komponenty React (shadcn, stateless/dumb) — publiczny entry point
+```
+
+### Podział pliku UI (wymagany gdy > 400 linii)
+
+Gdy `module.ui.tsx` przekracza **400 linii**, OBOWIĄZKOWO rozbij go na pliki sekcji:
+
+```
+/modules/<module-name>/
+  module.ui.tsx              ← entry point (< 200 ln): re-eksporty + komponenty Page-level
+  module.ui.<section>.tsx    ← sekcja/domena (< 500 ln każdy)
+```
+
+**Konwencja nazw sekcji** — dopasuj do domeny:
+`form`, `card`, `table`, `forms`, `info`, `insurance`, `service`, `maintenance`, `inspections`,
+`summary`, `transactions`, `income`, `template`, `categories`
+
+**Zasady podziału (bezwzględne):**
+
+1. Strony (`app/`) importują **WYŁĄCZNIE** z `module.ui.tsx` — żadnych zmian importów w `app/`
+2. Pliki sekcji (`module.ui.<section>.tsx`) NIE są importowane bezpośrednio przez `app/`
+3. `module.ui.tsx` re-eksportuje wszystko co potrzebują strony:
+   ```ts
+   // module.ui.tsx
+   export { VehicleFormDialog } from './module.ui.form'
+   export { VehicleInsuranceTab } from './module.ui.insurance'
+   ```
+4. Importy wewnętrzne używają ścieżki relatywnej:
+   ```ts
+   import { InsuranceCard } from './vehicles.ui.insurance'
+   ```
+5. Każdy plik sekcji ma własną dyrektywę `'use client'` i wszystkie potrzebne importy
+6. Komponenty pomocnicze (dialogi, karty) eksportowane z pliku sekcji, a nie z ui.tsx bezpośrednio
+
+**Przykład (moduł vehicles):**
+```
+modules/vehicles/
+  vehicles.ui.tsx              ← VehicleListPage, VehicleDetailPage + re-eksporty
+  vehicles.ui.form.tsx         ← VehicleFormDialog
+  vehicles.ui.info.tsx         ← VehicleInfoTab, InfoSection, InfoRow
+  vehicles.ui.insurance.tsx    ← VehicleInsuranceTab, InsuranceFormDialog, InsuranceCard
+  vehicles.ui.inspections.tsx  ← VehicleInspectionsTab, InspectionFormDialog, InspectionCard
+  vehicles.ui.service.tsx      ← VehicleServiceTab, ServiceVisitFormDialog, ServiceVisitCard
+  vehicles.ui.maintenance.tsx  ← VehicleMaintenanceTab, MaintenanceLogFormDialog
 ```
 
 ### Konwencje nazewnicze
@@ -79,7 +122,18 @@ Każdy moduł **musi** zawierać dokładnie te pliki w tej kolejności:
 
 ---
 
-## 4. Bezpieczeństwo — reguły krytyczne
+## 4. Autentykacja
+
+Auth przez **Supabase Auth** (JWT). Brak publicznej rejestracji — konta tworzy admin z panelu (`supabase.auth.admin.createUser`).
+
+- Middleware (`middleware.ts`) chroni wszystkie trasy poza `/login` i `/auth/*`
+- Strony auth wywołują Supabase SDK bezpośrednio (wyjątek od API-first)
+- Pierwszy admin: ręcznie w Supabase Dashboard → auto-create profilu z `role: 'admin'`
+- Pełna dokumentacja: `.claude/skills/ownhome-auth/SKILL.md`
+
+---
+
+## 5. Bezpieczeństwo — reguły krytyczne
 
 ### 4.1 Ownership check (obowiązkowy w każdej operacji)
 
@@ -156,7 +210,7 @@ Klient (web i przyszły mobile) nasłuchuje na `401` i wywołuje Supabase `refre
 
 ---
 
-## 5. Reguły bazy danych
+## 6. Reguły bazy danych
 
 ### 5.1 Indeksy — obowiązkowe
 
@@ -208,7 +262,7 @@ Repository nigdy nie zwraca rekordów z `deletedAt !== null` w zapytaniach listu
 
 ---
 
-## 6. System eventów
+## 7. System eventów
 
 ### 6.1 Zasada
 
@@ -265,7 +319,7 @@ async createSubscription(data: CreateSubscriptionDto, userId: string) {
 
 ---
 
-## 7. Moduły — zakres (scope)
+## 8. Moduły — zakres (scope)
 
 ### Moduły core (faza 1 — jedyne dozwolone)
 
@@ -295,7 +349,7 @@ Claude Code **nie dodaje** żadnych innych modułów bez explicit instrukcji. Ni
 
 ---
 
-## 8. TypeScript — reguły
+## 9. TypeScript — reguły
 
 - **Zakaz `any`** — bezwzględny. Używaj `unknown` jeśli typ nie jest znany, następnie narrowing.
 - **Zakaz type assertion `as X`** poza uzasadnionymi wyjątkami z komentarzem.
@@ -313,7 +367,7 @@ const dto = data as CreateVehicleDto;
 
 ---
 
-## 9. Workflow Claude Code — kolejność generowania
+## 10. Workflow Claude Code — kolejność generowania
 
 Claude Code **zawsze** generuje pliki w tej kolejności. Żadnych skrótów.
 
@@ -332,7 +386,7 @@ Typy z kroku 1-3 są importowane w 4-7 — nie deklarowane ponownie.
 
 ---
 
-## 10. Zakazy bezwzględne
+## 11. Zakazy bezwzględne
 
 ```
 ❌ Logika biznesowa w UI
@@ -351,7 +405,7 @@ Typy z kroku 1-3 są importowane w 4-7 — nie deklarowane ponownie.
 
 ---
 
-## 11. Mobile-ready — zasady
+## 12. Mobile-ready — zasady
 
 - Autentykacja **tylko przez JWT** — bez cookies sesji.
 - Każdy endpoint zwraca `401` (nie redirect) gdy brak/wygasły token.
@@ -361,7 +415,7 @@ Typy z kroku 1-3 są importowane w 4-7 — nie deklarowane ponownie.
 
 ---
 
-## 12. Obsługa błędów
+## 13. Obsługa błędów
 
 ```ts
 // Kody błędów — stałe w /types/common.types.ts
@@ -381,7 +435,7 @@ Wszystkie błędy serwera są logowane (console.error w dev, Sentry/zewnętrzny 
 
 ---
 
-## 13. Przykładowy moduł — szkielet
+## 14. Przykładowy moduł — szkielet
 
 Poniżej minimalny, poprawny szkielet dla modułu `subscriptions`.
 

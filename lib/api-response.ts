@@ -20,6 +20,7 @@ export function apiError(
     NOT_FOUND: 'The requested resource was not found.',
     VALIDATION_ERROR: 'The request data is invalid.',
     CONFLICT: 'A resource with this data already exists.',
+    RATE_LIMIT_EXCEEDED: 'Too many requests. Please try again later.',
     INTERNAL_ERROR: 'An unexpected error occurred.',
   };
 

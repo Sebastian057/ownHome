@@ -1,5 +1,4 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { AppError } from '@/types/common.types';
 
 export interface Session {
@@ -8,36 +7,20 @@ export interface Session {
 }
 
 export async function getSession(): Promise<Session | null> {
-  const cookieStore = await cookies();
+  const supabase = await createSupabaseServerClient();
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {}
-        },
-      },
-    }
-  );
-
+  // getUser() authenticates against Supabase Auth server — safe for server-side use
+  // getSession() reads from cookies without verifying — insecure on server
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
 
-  if (!session?.user) return null;
+  if (error || !user) return null;
 
   return {
-    userId: session.user.id,
-    email: session.user.email ?? '',
+    userId: user.id,
+    email: user.email ?? '',
   };
 }
 

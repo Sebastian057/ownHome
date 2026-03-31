@@ -8,6 +8,7 @@ export type ErrorCode =
   | 'NOT_FOUND'
   | 'VALIDATION_ERROR'
   | 'CONFLICT'
+  | 'RATE_LIMIT_EXCEEDED'
   | 'INTERNAL_ERROR';
 
 export interface ApiError {
@@ -42,8 +43,30 @@ export type EventName =
   | 'vehicle.service.created'
   | 'subscription.created'
   | 'subscription.deleted'
+  | 'subscription.billing.due'
+  | 'subscription.trial.ending'
   | 'obligation.due_date.approaching'
-  | 'calendar.event.reminder';
+  | 'calendar.event.reminder'
+  | 'budget.period.created'
+  | 'budget.period.reset'
+  | 'budget.period.replaced_with_template'
+  | 'budget.transaction.created'
+  | 'budget.category.overspent'
+  | 'recurring.payment.due'
+  | 'recurring.payment.confirmed'
+  | 'subscription.processed'
+  | 'vehicle.created'
+  | 'vehicle.updated'
+  | 'vehicle.deleted'
+  | 'vehicle.insurance.created'
+  | 'vehicle.insurance.renewed'
+  | 'vehicle.insurance.expiring'
+  | 'vehicle.inspection.created'
+  | 'vehicle.inspection.expiring'
+  | 'vehicle.registration.expiring'
+  | 'vehicle.service_visit.created'
+  | 'vehicle.maintenance.due'
+  | 'vehicle.maintenance.ai_suggestions_ready';
 
 // ─── App Error ────────────────────────────────────────────────────────────────
 
