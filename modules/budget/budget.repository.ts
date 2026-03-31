@@ -19,8 +19,7 @@ import type { Prisma } from '@prisma/client'
 
 export const budgetRepository = {
   async getOrCreateTemplate(userId: string) {
-    const existing = await prisma.budgetTemplate.findUnique({
-      where: { userId },
+    const existing = await prisma.budgetTemplate.findFirst({
       include: { incomes: { orderBy: { sortOrder: 'asc' } }, expenses: true },
     })
     if (existing) return existing
@@ -32,8 +31,15 @@ export const budgetRepository = {
   },
 
   async updateTemplateCurrency(userId: string, currency: string) {
+    const template = await prisma.budgetTemplate.findFirst()
+    if (!template) {
+      return prisma.budgetTemplate.create({
+        data: { userId, currency },
+        include: { incomes: { orderBy: { sortOrder: 'asc' } }, expenses: true },
+      })
+    }
     return prisma.budgetTemplate.update({
-      where: { userId },
+      where: { id: template.id },
       data: { currency },
       include: { incomes: { orderBy: { sortOrder: 'asc' } }, expenses: true },
     })
@@ -47,27 +53,27 @@ export const budgetRepository = {
 
   async updateTemplateIncome(id: string, userId: string, data: UpdateTemplateIncomeDto) {
     const rows = await prisma.budgetTemplateIncome.updateMany({
-      where: { id, userId },
+      where: { id },
       data,
     })
     if (rows.count === 0) return null
-    return prisma.budgetTemplateIncome.findFirst({ where: { id, userId } })
+    return prisma.budgetTemplateIncome.findFirst({ where: { id } })
   },
 
   async deleteTemplateIncome(id: string, userId: string) {
-    return prisma.budgetTemplateIncome.deleteMany({ where: { id, userId } })
+    return prisma.budgetTemplateIncome.deleteMany({ where: { id } })
   },
 
   async getTemplateIncomes(userId: string, templateId: string) {
     return prisma.budgetTemplateIncome.findMany({
-      where: { templateId, userId },
+      where: { templateId },
       orderBy: { sortOrder: 'asc' },
     })
   },
 
   async getTemplateExpenses(userId: string, templateId: string) {
     return prisma.budgetTemplateExpense.findMany({
-      where: { templateId, userId },
+      where: { templateId },
     })
   },
 
@@ -85,16 +91,16 @@ export const budgetRepository = {
   // ─── Period ─────────────────────────────────────────────────────────────────
 
   async getPeriodOwnership(id: string, userId: string) {
-    return prisma.budgetPeriod.findFirst({ where: { id, userId }, select: { id: true } })
+    return prisma.budgetPeriod.findFirst({ where: { id }, select: { id: true } })
   },
 
   async getPeriodByYearMonth(year: number, month: number, userId: string) {
-    return prisma.budgetPeriod.findFirst({ where: { userId, year, month } })
+    return prisma.budgetPeriod.findFirst({ where: { year, month } })
   },
 
   async getPeriodByYearMonthFull(year: number, month: number, userId: string) {
     return prisma.budgetPeriod.findFirst({
-      where: { userId, year, month },
+      where: { year, month },
       include: {
         incomes: { orderBy: { sortOrder: 'asc' } },
         categoryPlans: true,
@@ -104,7 +110,7 @@ export const budgetRepository = {
   },
 
   async listPeriods(userId: string, year?: number) {
-    const where: Prisma.BudgetPeriodWhereInput = { userId }
+    const where: Prisma.BudgetPeriodWhereInput = {}
     if (year !== undefined) where.year = year
 
     return prisma.budgetPeriod.findMany({
@@ -114,7 +120,7 @@ export const budgetRepository = {
   },
 
   async getCategoryPlan(periodId: string, userId: string, category: string) {
-    return prisma.budgetCategoryPlan.findFirst({ where: { periodId, userId, category } })
+    return prisma.budgetCategoryPlan.findFirst({ where: { periodId, category } })
   },
 
   async createPeriod(data: Pick<CreatePeriodDto, 'year' | 'month' | 'carryOverAmount'> & { userId: string; openingBalance?: number }) {
@@ -123,7 +129,7 @@ export const budgetRepository = {
 
   async getPeriodDetail(id: string, userId: string) {
     return prisma.budgetPeriod.findFirst({
-      where: { id, userId },
+      where: { id },
       include: {
         incomes: { orderBy: { sortOrder: 'asc' } },
         categoryPlans: true,
@@ -139,24 +145,24 @@ export const budgetRepository = {
     const update: Record<string, unknown> = {}
     if (data.openingBalance !== undefined) update.openingBalance = data.openingBalance
     if (data.closingBalance !== undefined) update.closingBalance = data.closingBalance
-    return prisma.budgetPeriod.updateMany({ where: { id, userId }, data: update })
+    return prisma.budgetPeriod.updateMany({ where: { id }, data: update })
   },
 
   async deletePeriod(id: string, userId: string) {
-    return prisma.budgetPeriod.deleteMany({ where: { id, userId } })
+    return prisma.budgetPeriod.deleteMany({ where: { id } })
   },
 
   async deleteAllPeriodData(periodId: string, userId: string) {
     return prisma.$transaction([
-      prisma.budgetIncome.deleteMany({ where: { periodId, userId } }),
-      prisma.budgetCategoryPlan.deleteMany({ where: { periodId, userId } }),
-      prisma.transaction.deleteMany({ where: { periodId, userId } }),
+      prisma.budgetIncome.deleteMany({ where: { periodId } }),
+      prisma.budgetCategoryPlan.deleteMany({ where: { periodId } }),
+      prisma.transaction.deleteMany({ where: { periodId } }),
     ])
   },
 
   async closePeriod(id: string, userId: string) {
     return prisma.budgetPeriod.updateMany({
-      where: { id, userId },
+      where: { id },
       data: { closedAt: new Date() },
     })
   },
@@ -176,28 +182,28 @@ export const budgetRepository = {
 
   async listIncomes(periodId: string, userId: string) {
     return prisma.budgetIncome.findMany({
-      where: { periodId, userId },
+      where: { periodId },
       orderBy: { sortOrder: 'asc' },
     })
   },
 
   async updateIncome(id: string, periodId: string, userId: string, data: UpdateIncomeDto) {
     const rows = await prisma.budgetIncome.updateMany({
-      where: { id, periodId, userId },
+      where: { id, periodId },
       data,
     })
     if (rows.count === 0) return null
-    return prisma.budgetIncome.findFirst({ where: { id, userId } })
+    return prisma.budgetIncome.findFirst({ where: { id } })
   },
 
   async deleteIncome(id: string, periodId: string, userId: string) {
-    return prisma.budgetIncome.deleteMany({ where: { id, periodId, userId } })
+    return prisma.budgetIncome.deleteMany({ where: { id, periodId } })
   },
 
   // ─── Category Plans ──────────────────────────────────────────────────────────
 
   async listCategoryPlans(periodId: string, userId: string) {
-    return prisma.budgetCategoryPlan.findMany({ where: { periodId, userId } })
+    return prisma.budgetCategoryPlan.findMany({ where: { periodId } })
   },
 
   async createManyCategoryPlans(items: Array<{
@@ -227,7 +233,6 @@ export const budgetRepository = {
     return prisma.transaction.findMany({
       where: {
         periodId,
-        userId,
         deletedAt: null,
         ...(filters.category && { category: filters.category }),
         ...(filters.source && { source: filters.source }),
@@ -271,7 +276,7 @@ export const budgetRepository = {
 
   async getTransaction(id: string, periodId: string, userId: string) {
     return prisma.transaction.findFirst({
-      where: { id, periodId, userId, deletedAt: null },
+      where: { id, periodId, deletedAt: null },
     })
   },
 
@@ -284,16 +289,16 @@ export const budgetRepository = {
     if (data.tags !== undefined) updateData.tags = data.tags
 
     const rows = await prisma.transaction.updateMany({
-      where: { id, periodId, userId, deletedAt: null, source: 'MANUAL' },
+      where: { id, periodId, deletedAt: null, source: 'MANUAL' },
       data: updateData,
     })
     if (rows.count === 0) return null
-    return prisma.transaction.findFirst({ where: { id, userId } })
+    return prisma.transaction.findFirst({ where: { id } })
   },
 
   async softDeleteTransaction(id: string, periodId: string, userId: string) {
     return prisma.transaction.updateMany({
-      where: { id, periodId, userId, deletedAt: null },
+      where: { id, periodId, deletedAt: null },
       data: { deletedAt: new Date() },
     })
   },
@@ -316,7 +321,7 @@ export const budgetRepository = {
 
   async sumTransactionsByCategory(periodId: string, userId: string, category: string) {
     const result = await prisma.transaction.aggregate({
-      where: { periodId, userId, category, deletedAt: null },
+      where: { periodId, category, deletedAt: null },
       _sum: { amount: true },
     })
     return Number(result._sum?.amount ?? 0)
@@ -326,7 +331,7 @@ export const budgetRepository = {
 
   async getPeriodsForYear(userId: string, year: number) {
     return prisma.budgetPeriod.findMany({
-      where: { userId, year },
+      where: { year },
       orderBy: { month: 'asc' },
       include: {
         incomes: true,
@@ -370,7 +375,6 @@ export const budgetRepository = {
   },
 
   async deleteCategory(id: string) {
-    // Tylko nieisystemowe kategorie można usunąć
     return prisma.budgetCategory.deleteMany({ where: { id, isSystem: false } })
   },
 }
