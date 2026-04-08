@@ -203,7 +203,7 @@ export function MonthlyReportTab({
     <div className="flex flex-col gap-5">
       <ExtendedSummaryCards summary={period.summary} />
 
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-2 xl:items-start">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 lg:items-start">
         {/* Lewa kolumna: Przychody → Kategorie wydatków */}
         <div className="flex flex-col gap-5">
           <IncomeSection

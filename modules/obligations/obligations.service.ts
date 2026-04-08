@@ -68,8 +68,18 @@ export const obligationService = {
   },
 
   async update(id: string, userId: string, data: UpdateRecurringTemplateDto): Promise<RecurringTemplateListItem> {
+    const existing = await obligationRepository.getById(id, userId)
+    if (!existing) throw new AppError('NOT_FOUND')
+
     const updated = await obligationRepository.update(id, userId, data)
     if (!updated) throw new AppError('NOT_FOUND')
+
+    if (data.billingDay !== undefined && data.billingDay !== existing.billingDay) {
+      await obligationRepository.updatePendingDueDates(id, userId, (year, month) =>
+        calcDueDate(year, month, data.billingDay!)
+      )
+    }
+
     return mapTemplate(updated)
   },
 

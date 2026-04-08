@@ -280,7 +280,7 @@ export function AppSidebar() {
   return (
     <aside
       className={cn(
-        "flex shrink-0 flex-col text-sidebar-foreground rounded-xl overflow-hidden transition-all duration-200 ease-in-out",
+        "hidden md:flex shrink-0 flex-col text-sidebar-foreground rounded-xl overflow-hidden transition-all duration-200 ease-in-out",
         collapsed ? "w-[60px]" : "w-56"
       )}
       style={{ background: "linear-gradient(160deg, oklch(var(--sidebar-from)), oklch(var(--sidebar-to)))" }}

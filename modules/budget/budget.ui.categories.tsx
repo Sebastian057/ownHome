@@ -227,18 +227,10 @@ export function PlannedExpensesTable({
     if (!periodId) return;
     setSaving(true);
     setError(null);
-    const plans = allCategoryRows
-      .map((cat) => ({
-        category: cat.slug,
-        planned: parseFloat(amounts[cat.slug] ?? "0") || 0,
-      }))
-      .filter((p) => p.planned > 0);
-
-    if (plans.length === 0) {
-      setError("Wpisz co najmniej jedną kwotę większą od 0");
-      setSaving(false);
-      return;
-    }
+    const plans = allCategoryRows.map((cat) => ({
+      category: cat.slug,
+      planned: parseFloat(amounts[cat.slug] ?? "0") || 0,
+    }));
 
     const res: ApiResponse<unknown> = await fetch(
       `/api/budget/periods/${periodId}/plans`,
@@ -627,7 +619,7 @@ export function CategoryManagerSection({
   return (
     <div className="flex flex-col gap-4">
       {/* Category list */}
-      <div className="grid grid-cols-2 gap-1.5">
+      <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
         {sorted.map((cat) => (
           <div
             key={cat.id}
