@@ -260,7 +260,7 @@ export function BalanceCard({
     onRefresh();
   }
 
-  const { expectedBalance, discrepancy } = period.summary;
+  const { expectedClosingBalance, discrepancy } = period.summary;
   const discrepancyNum = discrepancy !== null ? Number(discrepancy) : null;
 
   return (
@@ -286,15 +286,15 @@ export function BalanceCard({
           onSave={(v) => patch("closingBalance", v)}
         />
 
-        {expectedBalance !== null && (
+        {expectedClosingBalance !== null && (
           <>
             <div className="border-t border-border/50 pt-2 mt-0.5" />
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">Oczekiwane zamknięcie</span>
-              <span className="text-sm font-mono font-medium">{fmt(expectedBalance)} zł</span>
+              <span className="text-sm font-mono font-medium">{fmt(expectedClosingBalance)} zł</span>
             </div>
             <p className="text-[10px] text-muted-foreground -mt-1.5">
-              otwarcie + przychody − wydatki
+              otwarcie + zysk planowany
             </p>
           </>
         )}

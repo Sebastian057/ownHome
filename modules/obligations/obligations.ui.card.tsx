@@ -21,6 +21,18 @@ export function getCatLabel(categories: BudgetCategoryView[], slug: string): str
 
 // ─── ObligationCard — single obligation row in monthly view ───────────────────
 
+function getDueDateFlag(dueDate: string, status: ObligationMonthItem["status"]) {
+  if (status !== "PENDING") return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const due = new Date(dueDate);
+  due.setHours(0, 0, 0, 0);
+  const diffDays = Math.ceil((due.getTime() - today.getTime()) / 86_400_000);
+  if (diffDays < 0) return "overdue" as const;
+  if (diffDays <= 3) return "soon" as const;
+  return null;
+}
+
 export function ObligationCard({
   item,
   onConfirm,
@@ -39,12 +51,15 @@ export function ObligationCard({
   const isPending = item.status === "PENDING";
   const isConfirmed = item.status === "CONFIRMED";
   const isSkipped = item.status === "SKIPPED";
+  const dueDateFlag = getDueDateFlag(item.dueDate, item.status);
 
   return (
     <div className={cn(
       "flex items-center gap-3 rounded-lg border bg-card px-4 py-3 transition-colors",
       isConfirmed && "border-green-500/25 bg-green-500/5 opacity-80",
       isSkipped && "opacity-40",
+      dueDateFlag === "overdue" && "border-destructive/40 bg-destructive/5",
+      dueDateFlag === "soon" && "border-amber-500/50 bg-amber-500/5",
     )}>
       {/* Status icon */}
       <div className={cn(
@@ -66,7 +81,17 @@ export function ObligationCard({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <p className="text-sm font-medium truncate">{item.name}</p>
-          {isPending && (
+          {isPending && dueDateFlag === "overdue" && (
+            <Badge variant="outline" className="text-[10px] border-destructive/60 text-destructive shrink-0">
+              Po terminie
+            </Badge>
+          )}
+          {isPending && dueDateFlag === "soon" && (
+            <Badge variant="outline" className="text-[10px] border-amber-500/60 text-amber-600 shrink-0">
+              Termin blisko
+            </Badge>
+          )}
+          {isPending && !dueDateFlag && (
             <Badge variant="outline" className="text-[10px] border-amber-500/40 text-amber-600 shrink-0">
               Do zapłaty
             </Badge>
@@ -81,7 +106,13 @@ export function ObligationCard({
           )}
         </div>
         <p className="text-xs text-muted-foreground">
-          {getCatLabel(categories, item.category)} · termin: {item.dueDate.split("-").reverse().join(".")}
+          {getCatLabel(categories, item.category)} · termin:{" "}
+          <span className={cn(
+            dueDateFlag === "overdue" && "text-destructive font-medium",
+            dueDateFlag === "soon" && "text-amber-600 font-medium",
+          )}>
+            {item.dueDate.split("-").reverse().join(".")}
+          </span>
           {isConfirmed && item.confirmedAt && (
             <span className="ml-1.5 text-green-600/70">
               · zapłacono {new Date(item.confirmedAt).toLocaleDateString("pl-PL", { day: "numeric", month: "short" })}

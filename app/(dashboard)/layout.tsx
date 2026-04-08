@@ -1,4 +1,5 @@
 import { AppSidebar } from "@/components/app-sidebar";
+import { MobileHeader } from "@/components/mobile-header";
 import { UserProvider } from "@/components/user-provider";
 
 export default function DashboardLayout({
@@ -8,7 +9,8 @@ export default function DashboardLayout({
 }) {
   return (
     <UserProvider>
-      <div className="flex h-screen gap-3 p-3 overflow-hidden">
+      <div className="flex h-screen flex-col overflow-hidden md:flex-row md:gap-3 md:p-3">
+        <MobileHeader />
         <AppSidebar />
         <main className="flex-1 overflow-auto">
           {children}

@@ -213,13 +213,20 @@ export const budgetRepository = {
   },
 
   async bulkUpsertCategoryPlans(periodId: string, userId: string, data: BulkUpdatePlansDto) {
-    const ops = data.plans.map((p) =>
-      prisma.budgetCategoryPlan.upsert({
-        where: { periodId_category: { periodId, category: p.category } },
-        create: { periodId, userId, category: p.category, planned: p.planned },
-        update: { planned: p.planned },
-      })
-    )
+    const toDelete = data.plans.filter((p) => p.planned === 0).map((p) => p.category)
+    const toUpsert = data.plans.filter((p) => p.planned > 0)
+    const ops = [
+      ...(toDelete.length > 0
+        ? [prisma.budgetCategoryPlan.deleteMany({ where: { periodId, category: { in: toDelete } } })]
+        : []),
+      ...toUpsert.map((p) =>
+        prisma.budgetCategoryPlan.upsert({
+          where: { periodId_category: { periodId, category: p.category } },
+          create: { periodId, userId, category: p.category, planned: p.planned },
+          update: { planned: p.planned },
+        })
+      ),
+    ]
     return prisma.$transaction(ops)
   },
 

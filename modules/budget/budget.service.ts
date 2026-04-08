@@ -77,8 +77,11 @@ function calculateSummary(period: PeriodWithRelations, categories: BudgetCategor
   const expectedBalance = openingBal !== null
     ? (openingBal + actualIncome - actualExpenses).toFixed(2)
     : null
-  const discrepancy = closingBal !== null && expectedBalance !== null
-    ? (closingBal - Number(expectedBalance)).toFixed(2)
+  const expectedClosingBalance = openingBal !== null
+    ? (openingBal + plannedIncome - plannedExpenses).toFixed(2)
+    : null
+  const discrepancy = closingBal !== null && expectedClosingBalance !== null
+    ? (closingBal - Number(expectedClosingBalance)).toFixed(2)
     : null
 
   return {
@@ -91,6 +94,7 @@ function calculateSummary(period: PeriodWithRelations, categories: BudgetCategor
     balance: (plannedIncome + Number(period.carryOverAmount) - actualExpenses).toFixed(2),
     byCategory,
     expectedBalance,
+    expectedClosingBalance,
     discrepancy,
   }
 }

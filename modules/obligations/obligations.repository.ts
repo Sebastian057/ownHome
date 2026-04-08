@@ -94,7 +94,8 @@ export const obligationRepository = {
     })
   },
 
-  // Upsert — creates payment record if it doesn't exist for this month yet
+  // Upsert — creates payment record if it doesn't exist for this month yet.
+  // Also syncs dueDate for PENDING records so billingDay changes are reflected immediately.
   async ensurePaymentForMonth(data: {
     templateId: string
     userId: string
@@ -103,7 +104,7 @@ export const obligationRepository = {
     dueDate: Date
     amount: Prisma.Decimal | number
   }) {
-    return prisma.recurringPayment.upsert({
+    await prisma.recurringPayment.upsert({
       where: { templateId_year_month: { templateId: data.templateId, year: data.year, month: data.month } },
       create: {
         templateId: data.templateId,
@@ -114,7 +115,17 @@ export const obligationRepository = {
         amount: data.amount,
         status: 'PENDING',
       },
-      update: {}, // Don't overwrite if already confirmed/skipped
+      update: {}, // Don't overwrite confirmed/skipped status or amount
+    })
+    // Sync dueDate for PENDING records (reflects billingDay changes)
+    await prisma.recurringPayment.updateMany({
+      where: {
+        templateId: data.templateId,
+        year: data.year,
+        month: data.month,
+        status: 'PENDING',
+      },
+      data: { dueDate: data.dueDate },
     })
   },
 
@@ -176,6 +187,22 @@ export const obligationRepository = {
         amount: defaultAmount,
       },
     })
+  },
+
+  // Update dueDate on all PENDING payments for a template (called after billingDay change)
+  async updatePendingDueDates(templateId: string, userId: string, calcDueDate: (year: number, month: number) => Date) {
+    const pending = await prisma.recurringPayment.findMany({
+      where: { templateId, status: 'PENDING' },
+    })
+    if (pending.length === 0) return
+    return prisma.$transaction(
+      pending.map((p) =>
+        prisma.recurringPayment.update({
+          where: { id: p.id },
+          data: { dueDate: calcDueDate(p.year, p.month) },
+        })
+      )
+    )
   },
 
   // Legacy: list by periodId (used by budget module)

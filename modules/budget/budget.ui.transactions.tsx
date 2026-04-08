@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -242,14 +242,14 @@ export function EditTransactionDialog({
   const [error, setError] = useState<string | null>(null);
 
   // Sync when transaction changes
-  useState(() => {
+  useEffect(() => {
     if (transaction) {
       setTitle(transaction.title);
       setAmount(transaction.amount);
       setDate(transaction.date);
       setCategory(transaction.category);
     }
-  });
+  }, [transaction]);
 
   async function handleSubmit() {
     if (!transaction || !title.trim() || !amount || !category || !date) return;

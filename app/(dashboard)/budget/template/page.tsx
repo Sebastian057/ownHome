@@ -12,7 +12,7 @@ export default function BudgetTemplatePage() {
   );
 
   return (
-    <div className="flex flex-col gap-5 p-6 max-w-4xl">
+    <div className="flex flex-col gap-5 p-4 md:p-6 max-w-4xl">
       <div>
         <h1 className="text-2xl font-semibold">Szablon budżetu</h1>
         <p className="text-sm text-muted-foreground">

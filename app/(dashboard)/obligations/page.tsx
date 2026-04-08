@@ -80,16 +80,16 @@ export default function ObligationsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-5 p-6">
+    <div className="flex flex-col gap-5 p-4 md:p-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-2xl font-semibold">Zobowiązania</h1>
           <p className="text-sm text-muted-foreground">
             Płatności cykliczne — kredyt, rachunki, raty
           </p>
         </div>
-        <Button size="sm" onClick={() => setShowAdd(true)} className="gap-1.5">
+        <Button size="sm" onClick={() => setShowAdd(true)} className="gap-1.5 shrink-0">
           <Plus className="h-4 w-4" /> Nowe zobowiązanie
         </Button>
       </div>
@@ -105,7 +105,7 @@ export default function ObligationsPage() {
 
       {/* Summary cards */}
       {!isLoading && items.length > 0 && (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div className="rounded-lg border bg-card px-4 py-3">
             <p className="text-xs text-muted-foreground">Do zapłaty</p>
             <p className="mt-1 font-mono text-lg font-semibold text-amber-600">

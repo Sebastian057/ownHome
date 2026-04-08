@@ -57,8 +57,9 @@ export interface BudgetSummary {
   balance: string
   byCategory: CategorySummaryItem[]
   // Śledzenie stanu konta (null gdy nie ustawiono)
-  expectedBalance: string | null   // openingBalance + actualIncome - actualExpenses
-  discrepancy: string | null       // closingBalance - expectedBalance
+  expectedBalance: string | null         // openingBalance + actualIncome - actualExpenses
+  expectedClosingBalance: string | null  // openingBalance + plannedIncome - plannedExpenses
+  discrepancy: string | null             // closingBalance - expectedClosingBalance
 }
 
 export interface CategorySummaryItem {
