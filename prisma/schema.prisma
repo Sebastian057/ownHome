@@ -511,3 +511,27 @@ model RecurringPayment {
   @@index([userId, year, month])
   @@map("recurring_payments")
 }
+
+// ─── METERS ──────────────────────────────────────────────────────────────────
+
+enum MeterType {
+  WATER
+  ELECTRICITY
+  GAS
+}
+
+model MeterReading {
+  id          String    @id @default(cuid())
+  userId      String    @map("user_id")
+  type        MeterType
+  value       Decimal   @db.Decimal(10, 3)
+  readingDate DateTime  @db.Date @map("reading_date")
+  notes       String?   @db.VarChar(500)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  @@index([userId])
+  @@index([userId, type])
+  @@index([userId, type, readingDate])
+  @@map("meter_readings")
+}

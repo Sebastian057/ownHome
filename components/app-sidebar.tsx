@@ -13,6 +13,7 @@ import {
   Car,
   ChevronDown,
   CreditCard,
+  Gauge,
   Home,
   LayoutDashboard,
   LogOut,
@@ -47,6 +48,7 @@ const navItems: NavItemDef[] = [
     ],
   },
   { label: "Pojazdy",   href: "/vehicles", icon: Car },
+  { label: "Liczniki",  href: "/meters",   icon: Gauge },
   { label: "Kalendarz", href: "/calendar", icon: CalendarDays },
 ];
 
