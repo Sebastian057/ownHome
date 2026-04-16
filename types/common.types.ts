@@ -66,7 +66,9 @@ export type EventName =
   | 'vehicle.registration.expiring'
   | 'vehicle.service_visit.created'
   | 'vehicle.maintenance.due'
-  | 'vehicle.maintenance.ai_suggestions_ready';
+  | 'vehicle.maintenance.ai_suggestions_ready'
+  | 'meter.reading.created'
+  | 'meter.reading.deleted';
 
 // ─── App Error ────────────────────────────────────────────────────────────────
 
