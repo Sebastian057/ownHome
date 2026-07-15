@@ -1,0 +1,3 @@
+-- This repository uses Prisma migrations as the source of truth.
+-- Do not rely on `supabase db reset` here.
+-- Use `npm run db:local:reset` so Prisma migrations and local seed stay aligned.
