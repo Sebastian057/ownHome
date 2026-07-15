@@ -1701,7 +1701,7 @@ Cache-Control: no-store   // dane finansowe — nigdy nie cachować
 1.  Prisma schema — wszystkie modele z sekcji 3.1 (w tym BudgetCategory jako model, nie enum)
 2.  Migracja RLS SQL — wszystkie tabele z sekcji 3.2
 3.  npx prisma generate
-4.  npx prisma migrate dev --name finance_modules_init
+4.  Utwórz migrację zgodnie z aktualnym workflow repo; nie zakładaj lokalnego `npx prisma migrate dev`, jeśli historia migracji nie ma fresh-db baseline
 5.  Seed domyślnych kategorii (14 rekordów w budget_categories)
 ```
 

@@ -6,7 +6,20 @@
     "dev": "next dev --turbopack",
     "build": "prisma generate && next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:local:start": "supabase start",
+    "db:local:stop": "supabase stop",
+    "db:local:status": "supabase status -o env",
+    "db:local:doctor": "node ./scripts/db/local-safety-check.mjs",
+    "db:local:migrate": "node ./scripts/db/unsupported-migrate.mjs prisma migrate dev",
+    "db:local:sync": "node ./scripts/db/sync-local.mjs",
+    "db:local:deploy": "node ./scripts/db/unsupported-migrate.mjs prisma migrate deploy",
+    "db:local:reset": "node ./scripts/db/reset-local.mjs",
+    "db:local:seed": "node ./scripts/db/seed-budget-categories.mjs ./.env.prisma.local",
+    "db:local:use-demo-data": "node ./scripts/db/use-demo-data.mjs",
+    "db:local:studio": "node ./scripts/db/prisma-runner.mjs local studio",
+    "db:prod:status": "node ./scripts/db/prisma-runner.mjs prod migrate status",
+    "db:prod:migrate": "node ./scripts/db/prisma-runner.mjs prod migrate deploy"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",
@@ -44,6 +57,7 @@
     "eslint": "^9",
     "eslint-config-next": "^15.2.1",
     "postcss": "^8",
+    "supabase": "^2.109.1",
     "tailwindcss": "^4.2.2",
     "typescript": "^5"
   }

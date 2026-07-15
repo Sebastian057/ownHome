@@ -8,6 +8,8 @@ node_modules/
 .env.local
 .env.*.local
 .env.production
+.env.prisma.local
+.env.prisma.prod
 
 # next.js
 /.next/
